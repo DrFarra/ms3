@@ -128,6 +128,46 @@ final class ModelTests: XCTestCase {
         XCTAssertNil(AddressMatch.bestName("Encarnación", in: names))
     }
 
+    func testSiteFormPayload() {
+        // Shaped like the site's billing-address form (fields from the user's screenshot).
+        let rows: [[String: Any]] = [
+            ["name": "billing_first_name", "type": "text", "label": "Nombres y Apellidos / Razón Social", "required": true, "value": ""],
+            ["name": "billing_tipo_doc", "type": "radio", "label": "Tipo de Documento", "required": NSNumber(value: true),
+             "options": [["1", "Cédula"], ["2", "RUC"]], "value": "1"],
+            ["name": "billing_country", "type": "select", "label": "País / Región", "options": [["PY", "Paraguay"]], "value": "PY"],
+            ["name": "newsletter", "type": "checkbox", "label": "Recibir ofertas", "options": [["1", ""]], "value": ""],
+            ["name": "woocommerce-edit-address-nonce", "type": "hidden", "value": "abc123"],
+            ["name": "save_address", "type": "hidden", "value": "Guardar dirección"],
+            ["name": "", "type": "text"],
+            ["name": "weird", "type": "date", "value": "x"],
+        ]
+        var spec = SiteFormSpec(action: "https://www.farmatotal.com.py/mi-cuenta/edit-address/facturacion/", submitLabel: "Guardar", fields: FormField.parse(rows))
+        XCTAssertEqual(spec.fields.count, 7)
+        XCTAssertEqual(spec.fields[1].kind, .radio)
+        XCTAssertTrue(spec.fields[1].required)
+        XCTAssertEqual(spec.fields[1].options.map(\.label), ["Cédula", "RUC"])
+        XCTAssertEqual(spec.fields[6].kind, .text)                         // unknown types become text
+        XCTAssertEqual(spec.missing, ["Nombres y Apellidos / Razón Social"])
+        XCTAssertNil(spec.payload["newsletter"])                           // unchecked checkbox not sent
+        XCTAssertEqual(spec.payload["woocommerce-edit-address-nonce"], "abc123")
+        XCTAssertEqual(spec.payload["save_address"], "Guardar dirección")
+        spec.fields[0].value = "Silva Emilio"
+        spec.fields[3].value = "1"
+        XCTAssertTrue(spec.missing.isEmpty)
+        XCTAssertEqual(spec.payload["newsletter"], "1")
+
+        // Checkout: shipping fields only count when "ship to a different address" is checked.
+        var checkout = SiteFormSpec(action: "", submitLabel: "Realizar pedido", fields: FormField.parse([
+            ["name": "billing_first_name", "type": "text", "label": "Nombre", "required": true, "value": "Ana"],
+            ["name": "ship_to_different_address", "type": "checkbox", "label": "¿Enviar a otra dirección?", "options": [["1", ""]], "value": ""],
+            ["name": "shipping_address_1", "type": "text", "label": "Dirección de envío", "required": true, "value": ""],
+        ]))
+        XCTAssertEqual(checkout.visibleFields.map(\.name), ["billing_first_name", "ship_to_different_address"])
+        XCTAssertTrue(checkout.missing.isEmpty)
+        checkout.fields[1].value = "1"
+        XCTAssertEqual(checkout.missing, ["Dirección de envío"])
+    }
+
     func testQueryPath() {
         var q = ProductQuery(search: "ibuprofeno 400", category: 12, onSale: true, sort: .priceAsc, minPrice: 1000)
         XCTAssertEqual(q.path(page: 2),

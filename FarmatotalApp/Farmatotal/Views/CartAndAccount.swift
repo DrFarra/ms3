@@ -32,7 +32,7 @@ struct CartView: View {
                         }
                     }
                     .safeAreaInset(edge: .bottom) {
-                        Button { shop.open("/caja/", title: "Finalizar compra") } label: {
+                        NavigationLink { CheckoutView() } label: {
                             Label("Finalizar compra", systemImage: "lock.fill")
                                 .font(.headline)
                                 .frame(maxWidth: .infinity)
@@ -141,12 +141,17 @@ struct AccountView: View {
                     NavigationLink(value: Route.compare) {
                         Label("Comparar productos", systemImage: "square.split.2x1").badge(shop.compare.count)
                     }
-                    webRow("¿Dónde está mi pedido?", "shippingbox", "/rastrear-pedido/")
+                    NavigationLink {
+                        SiteFormView(title: "¿Dónde está mi pedido?", page: "/rastrear-pedido/",
+                                     selector: "form.woocommerce-form-track-order, form.track_order", closesOnSuccess: false)
+                    } label: { Label("¿Dónde está mi pedido?", systemImage: "shippingbox") }
                 }
 
                 Section("Farmatotal") {
                     NavigationLink(value: Route.branches) { Label("Sucursales", systemImage: "building.2") }
-                    webRow("Contacto", "envelope", "/contacto/")
+                    NavigationLink {
+                        SiteFormView(title: "Contacto", page: "/contacto/", selector: "form.wpcf7-form", closesOnSuccess: false)
+                    } label: { Label("Contacto", systemImage: "envelope") }
                     Link(destination: WebBridge.site) {
                         Label("Abrir el sitio web", systemImage: "safari").foregroundStyle(.primary)
                     }
@@ -172,14 +177,38 @@ struct AccountView: View {
             .withRoutes()
         }
     }
+}
 
-    private func webRow(_ title: String, _ icon: String, _ path: String) -> some View {
-        Button { shop.open(path, title: title) } label: {
-            HStack {
-                Label(title, systemImage: icon).foregroundStyle(.primary)
-                Spacer()
-                Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(.tertiary)
+/// The site's checkout form, natively: billing data, CI/RUC, branch, payment method. It posts to the site like
+/// its own checkout does; only the payment itself (Bancard's page) opens on the web.
+struct CheckoutView: View {
+    @Environment(Shop.self) private var shop
+
+    var body: some View {
+        SiteFormView(title: "Finalizar compra", page: "/caja/", selector: "form.checkout, form.woocommerce-checkout",
+                     intro: summary, precheck: stockAtBranch, submitter: SiteFormAPI.checkout) {
+            await shop.refreshCart()
+        }
+    }
+
+    private var summary: String? {
+        guard let c = shop.cart else { return nil }
+        return "\(c.itemsCount) producto(s) · Total \(Gs.format(c.totals.totalPrice, minor: c.totals.currencyMinorUnit ?? 0))"
+    }
+
+    /// Same check the website's checkout makes: every item must be in stock at the chosen branch
+    /// (its "Sucursal" field values are the codes the stock service uses).
+    private func stockAtBranch(_ spec: SiteFormSpec) async -> [String] {
+        guard let code = spec.fields.first(where: { $0.name == "billing_sucursal" })?.value, !code.isEmpty,
+              let items = shop.cart?.items else { return [] }
+        var problems: [String] = []
+        for item in items {
+            guard let sku = item.sku, !sku.isEmpty, let units = try? await StockAPI.units(sku: sku, branch: code) else { continue }
+            if units < item.quantity {
+                problems.append(units == 0 ? "\(item.title): no hay stock en la sucursal elegida."
+                                           : "\(item.title): solo hay \(units) en la sucursal elegida.")
             }
         }
+        return problems
     }
 }

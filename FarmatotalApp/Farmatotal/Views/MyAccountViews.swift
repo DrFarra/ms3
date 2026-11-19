@@ -21,9 +21,10 @@ struct MyAccountSection: View {
                     NavigationLink { AddressesView(url: url) } label: { Label("Direcciones", systemImage: "house") }
                 }
                 if let url = a.links["edit-account"] {
-                    Button { shop.open(url, title: "Datos y contraseña") } label: {
-                        Label("Datos y contraseña", systemImage: "person.text.rectangle").foregroundStyle(.primary)
-                    }
+                    NavigationLink {
+                        SiteFormView(title: "Datos y contraseña", page: url,
+                                     selector: "form.woocommerce-EditAccountForm, form.edit-account") { await shop.refreshAccount() }
+                    } label: { Label("Datos y contraseña", systemImage: "person.text.rectangle") }
                 }
                 Button(role: .destructive) { Task { await shop.logout() } } label: {
                     Label("Cerrar sesión", systemImage: "rectangle.portrait.and.arrow.right")
@@ -32,9 +33,7 @@ struct MyAccountSection: View {
                 HStack { ProgressView(); Text("Cargando tu cuenta…").foregroundStyle(.secondary) }
             } else {
                 Button { showLogin = true } label: { Label("Iniciar sesión", systemImage: "person.crop.circle.badge.checkmark") }
-                Button { shop.open(AccountAPI.page, title: "Crear cuenta") } label: {
-                    Label("Crear cuenta", systemImage: "person.badge.plus").foregroundStyle(.primary)
-                }
+                NavigationLink { RegisterForm() } label: { Label("Crear cuenta", systemImage: "person.badge.plus") }
             }
         }
         .task(id: shop.account?.loggedIn) {
@@ -85,13 +84,17 @@ struct LoginView: View {
                     .disabled(user.isEmpty || password.isEmpty || busy)
                 }
                 Section {
-                    Button("¿Olvidaste tu contraseña?") {
-                        openOnWeb(shop.account?.lostPassword ?? AccountAPI.page + "lost-password/", "Recuperar contraseña")
+                    NavigationLink("¿Olvidaste tu contraseña?") {
+                        SiteFormView(title: "Recuperar contraseña",
+                                     page: shop.account?.lostPassword ?? AccountAPI.page + "lost-password/",
+                                     selector: "form.woocommerce-ResetPassword, form.lost_reset_password", closesOnSuccess: false)
                     }
+                    NavigationLink("Crear una cuenta") { RegisterForm() }
+                }
+                Section {
                     Button("Ingresar con Facebook o Google") { openOnWeb(AccountAPI.page, "Ingresar") }
-                    Button("Crear una cuenta") { openOnWeb(AccountAPI.page, "Crear cuenta") }
                 } footer: {
-                    Text("Estas opciones usan las páginas del sitio. Google puede no permitir ingresar desde una app.")
+                    Text("Usa la página del sitio, porque Facebook y Google tienen su propio ingreso. Google puede no permitirlo desde una app.")
                 }
             }
             .navigationTitle("Iniciar sesión")
@@ -99,6 +102,7 @@ struct LoginView: View {
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancelar") { dismiss() } } }
         }
         .task { if shop.account?.loginNonce.isEmpty != false { await shop.refreshAccount() } }
+        .onChange(of: shop.account?.loggedIn) { _, loggedIn in if loggedIn == true { dismiss() } }   // e.g. after signing up
     }
 
     private func submit() async {
@@ -211,40 +215,7 @@ struct OrderDetailView: View {
                 if let s = detail?.summary, !s.isEmpty { Text(s).font(.subheadline) }
             }
             if let d = detail {
-                if !d.items.isEmpty {
-                    Section("Productos") {
-                        ForEach(Array(d.items.enumerated()), id: \.offset) { _, item in
-                            LabeledContent { Text(item.total).font(.subheadline.weight(.semibold)) } label: {
-                                Text(item.name).font(.subheadline)
-                            }
-                        }
-                    }
-                }
-                if !d.totals.isEmpty {
-                    Section("Totales") {
-                        ForEach(Array(d.totals.enumerated()), id: \.offset) { i, row in
-                            LabeledContent(row.label.replacingOccurrences(of: ":", with: ""), value: row.value)
-                                .font(i == d.totals.count - 1 ? .headline : .subheadline)
-                        }
-                    }
-                }
-                if !d.actions.isEmpty {
-                    Section {
-                        ForEach(Array(d.actions.enumerated()), id: \.offset) { _, a in
-                            Button(a.label) { shop.open(a.url, title: a.label) }
-                        }
-                    }
-                }
-                if !d.addresses.isEmpty {
-                    Section("Direcciones") {
-                        ForEach(d.addresses, id: \.self) { Text($0).font(.subheadline) }
-                    }
-                }
-                if !d.notes.isEmpty {
-                    Section("Novedades") {
-                        ForEach(d.notes, id: \.self) { Text($0).font(.subheadline) }
-                    }
-                }
+                OrderSections(detail: d)
             } else if let error {
                 Section { Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.secondary) }
             } else {
@@ -281,7 +252,10 @@ struct AddressesView: View {
                         .font(.subheadline)
                         .foregroundStyle(c.text.isEmpty ? .secondary : .primary)
                     if let edit = c.editURL {
-                        Button { shop.open(edit, title: c.title) } label: { Label("Editar", systemImage: "pencil") }
+                        NavigationLink {
+                            SiteFormView(title: c.title, page: edit,
+                                         selector: ".woocommerce-MyAccount-content form, form.edit-address")
+                        } label: { Label("Editar", systemImage: "pencil") }
                     }
                 }
             }
@@ -299,5 +273,16 @@ struct AddressesView: View {
         error = nil
         do { cards = try await AccountAPI.addresses(url) } catch { self.error = error.localizedDescription }
         loaded = true
+    }
+}
+
+/// The site's sign-up form, natively. WooCommerce logs the new customer in right away.
+struct RegisterForm: View {
+    @Environment(Shop.self) private var shop
+    var body: some View {
+        SiteFormView(title: "Crear cuenta", page: AccountAPI.page, selector: "form.woocommerce-form-register, form.register") {
+            await shop.refreshAccount()
+            await shop.refreshCart()
+        }
     }
 }

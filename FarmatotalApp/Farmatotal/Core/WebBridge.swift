@@ -90,7 +90,8 @@ final class WebBridge: NSObject, WKNavigationDelegate {
         let script = """
         const r = await fetch(url, form ? { method: 'POST', body: new URLSearchParams(form), credentials: 'include' }
                                         : { credentials: 'include' });
-        const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
+        const body = await r.text();
+        const doc = new DOMParser().parseFromString(body, 'text/html');
         const status = r.status;
         const t = el => (el?.textContent ?? '').replace(/\\s+/g, ' ').trim();
         const lines = el => {

@@ -136,6 +136,34 @@ struct DiagnosticsView: View {
             }
         } catch { add("Mi cuenta", false, error.localizedDescription) }
 
+        // Native forms: only loads each form (never submits)
+        var forms: [(String, String, String)] = [
+            ("Rastrear pedido", "/rastrear-pedido/", "form.woocommerce-form-track-order, form.track_order"),
+            ("Contacto", "/contacto/", "form.wpcf7-form"),
+        ]
+        if let a = try? await AccountAPI.summary() {
+            if a.loggedIn {
+                if let u = a.links["edit-account"] { forms.append(("Datos y contraseña", u, "form.woocommerce-EditAccountForm, form.edit-account")) }
+                if let u = a.links["edit-address"], let card = (try? await AccountAPI.addresses(u))?.first, let edit = card.editURL {
+                    forms.append(("Editar \(card.title)", edit, ".woocommerce-MyAccount-content form, form.edit-address"))
+                }
+            } else {
+                forms.append(("Crear cuenta", AccountAPI.page, "form.woocommerce-form-register, form.register"))
+                forms.append(("Recuperar contraseña", a.lostPassword ?? AccountAPI.page + "lost-password/",
+                              "form.woocommerce-ResetPassword, form.lost_reset_password"))
+            }
+        }
+        for (name, page, selector) in forms {
+            do {
+                if let spec = try await SiteFormAPI.load(page, selector: selector) {
+                    let visible = spec.fields.filter { $0.kind != .hidden }
+                    add("Formulario: \(name)", true, "\(visible.count) campos: " + visible.prefix(6).map(\.label).joined(separator: ", "))
+                } else {
+                    add("Formulario: \(name)", false, "no se encontró en la página")
+                }
+            } catch { add("Formulario: \(name)", false, error.localizedDescription) }
+        }
+
         // Branches: store-locator page and the branch popup, run hidden like the real screens do
         let locator = HiddenSite(path: "/sucursales/")
         let popup = HiddenSite(path: "/rastrear-pedido/")

@@ -48,7 +48,7 @@ private struct SiteWebView: UIViewRepresentable {
         config.websiteDataStore = .default()
         if page.hideSiteChrome {
             // The app already provides navigation; hide the site's header, footer and side menu.
-            let css = ".site-header,.site-footer,.site-canvas,.wcbvs-floating-buttons{display:none!important}"
+            let css = ".site-header,.site-footer,.site-canvas,.wcbvs-floating-buttons,.breadcrumb,.woocommerce-breadcrumb,.site-breadcrumb,.klb-breadcrumb,.woocommerce-MyAccount-navigation{display:none!important}"
             let js = "var s=document.createElement('style');s.textContent='\(css)';document.documentElement.appendChild(s);"
             config.userContentController.addUserScript(WKUserScript(source: js, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
         }

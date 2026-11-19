@@ -89,6 +89,7 @@ struct Cart: Codable {
         let prices: Prices
         let totals: LineTotals
         let quantityLimits: Limits?
+        let sku: String?
         var title: String { name.htmlPlain }
         var maxQuantity: Int { max(1, min(quantityLimits?.maximum ?? 99, 99)) }
     }

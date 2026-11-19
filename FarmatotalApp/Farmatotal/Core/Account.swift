@@ -99,19 +99,27 @@ enum AccountAPI {
         return (rows, next?.isEmpty == false ? next : nil)
     }
 
+    /// Reads an order-details block (account order page, or the order-tracking result).
+    static let orderJS = """
+    const orderData = () => {
+      const table = doc.querySelector('.woocommerce-table--order-details');
+      return {
+        summary: t(doc.querySelector('.woocommerce-MyAccount-content > p, p.order-info')),
+        items: [...(table?.querySelectorAll('tbody tr') ?? [])].map(tr => [t(tr.querySelector('.product-name')), t(tr.querySelector('.product-total'))]),
+        totals: [...(table?.querySelectorAll('tfoot tr') ?? [])].map(tr => [t(tr.querySelector('th')), t(tr.querySelector('td'))]),
+        addresses: [...doc.querySelectorAll('.woocommerce-customer-details address')].map(lines),
+        notes: [...doc.querySelectorAll('.woocommerce-OrderUpdates li, .woocommerce-OrderUpdate')].map(t),
+        actions: [...doc.querySelectorAll('.order-actions-button, .woocommerce-orders-table__cell-order-actions a, a.pay, a.cancel')]
+          .map(a => [t(a), a.href]).filter(a => a[0] && a[1])
+      };
+    };
+    """
+
     static func order(_ url: String) async throws -> OrderDetail {
-        let raw = try await WebBridge.shared.scrape(url, extract: """
-        const table = doc.querySelector('.woocommerce-table--order-details');
-        return {
-          summary: t(doc.querySelector('.woocommerce-MyAccount-content > p')),
-          items: [...(table?.querySelectorAll('tbody tr') ?? [])].map(tr => [t(tr.querySelector('.product-name')), t(tr.querySelector('.product-total'))]),
-          totals: [...(table?.querySelectorAll('tfoot tr') ?? [])].map(tr => [t(tr.querySelector('th')), t(tr.querySelector('td'))]),
-          addresses: [...doc.querySelectorAll('.woocommerce-customer-details address')].map(lines),
-          notes: [...doc.querySelectorAll('.woocommerce-OrderUpdates li, .woocommerce-OrderUpdate')].map(t),
-          actions: [...doc.querySelectorAll('.order-actions-button, .woocommerce-orders-table__cell-order-actions a, a.pay, a.cancel')]
-            .map(a => [t(a), a.href]).filter(a => a[0] && a[1])
-        };
-        """) as? [String: Any] ?? [:]
+        parseOrder(try await WebBridge.shared.scrape(url, extract: orderJS + "return orderData();") as? [String: Any] ?? [:])
+    }
+
+    static func parseOrder(_ raw: [String: Any]) -> OrderDetail {
         func pairs(_ k: String) -> [(String, String)] {
             (raw[k] as? [[String]] ?? []).compactMap { $0.count == 2 && !$0[0].isEmpty ? ($0[0], $0[1]) : nil }
         }
