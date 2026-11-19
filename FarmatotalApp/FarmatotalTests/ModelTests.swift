@@ -91,6 +91,26 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(b[1].hours, "Lun: 7:00 AM - 10:00 PM\nDom: cerrado")
     }
 
+    func testParsesBranchPopupEntries() {
+        // Values as the live popup has them (from the on-device diagnostics report), whitespace included.
+        let rows: [[String: Any]] = [
+            ["id": "1697", "name": "Terminal - Avda. Dr. Fernando De La Mora 2416 Esq. Cedro",
+             "lat": "-25.32742987804708", "lng": "-57.59585357056962",
+             "address": "\n\t\t\t\t\tAvda. Dr. Fernando De La Mora 2416 Esq. Cedro\t\t\t\t", "distance": "1 km"],
+            ["id": "1697", "name": "Terminal - duplicate"],                     // same inventory twice → once
+            ["id": "1729", "name": "Rio Apa - Avda. Cacique Lambare Nº 2654", "lat": "", "lng": ""],
+            ["id": "", "name": "sin id"],
+        ]
+        let o = InventoryOption.parse(rows)
+        XCTAssertEqual(o.map(\.id), ["1697", "1729"])
+        XCTAssertEqual(o[0].shortName, "Terminal")
+        XCTAssertEqual(o[0].address, "Avda. Dr. Fernando De La Mora 2416 Esq. Cedro")
+        XCTAssertEqual(o[0].lat, -25.32742987804708)
+        XCTAssertEqual(o[0].siteDistance, "1 km")
+        XCTAssertNil(o[1].coordinate)
+        XCTAssertEqual(o[1].address, "Avda. Cacique Lambare Nº 2654")   // falls back to the part after " - "
+    }
+
     func testQueryPath() {
         var q = ProductQuery(search: "ibuprofeno 400", category: 12, onSale: true, sort: .priceAsc, minPrice: 1000)
         XCTAssertEqual(q.path(page: 2),

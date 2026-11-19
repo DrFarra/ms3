@@ -3,22 +3,6 @@ import MapKit
 import WebKit
 import CoreLocation
 
-/// One branch as offered by the site's own selector (multi-inventory plugin popup).
-struct InventoryOption: Identifiable, Hashable {
-    let id: Int              // position in the popup's list; used to click it
-    let name: String
-    let address: String
-    let siteDistance: String?
-    var lat: Double?
-    var lng: Double?
-
-    var shortName: String { name.components(separatedBy: " - ").first ?? name }
-    var coordinate: CLLocationCoordinate2D? { lat.flatMap { la in lng.map { CLLocationCoordinate2D(latitude: la, longitude: $0) } } }
-    func distance(from here: CLLocation) -> CLLocationDistance? {
-        coordinate.map { here.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude)) }
-    }
-}
-
 /// A site page running hidden in the app. It lets the site's own scripts do their work: the branch popup
 /// (read its list, click an entry so the site stores the branch) and the store locator (its branch list).
 @MainActor @Observable
@@ -39,14 +23,25 @@ final class HiddenSite: NSObject, WKNavigationDelegate {
           if (vals.length && vals.every(hasLat)) window.__geo.push(vals); else vals.forEach(walk);
         }
       };
-      const keep = t => { try { walk(JSON.parse(t)); } catch (e) {} };
-      const send = XMLHttpRequest.prototype.send;
+      // Branch-popup responses carry HTML (<a data-id data-lat …>) rather than JSON: keep those raw, with the request.
+      window.__raw = [];
+      const keep = (t, req) => {
+        try { walk(JSON.parse(t)); } catch (e) {}
+        if (typeof t === 'string' && /data-lat|inventor/i.test(t)) window.__raw.push({ req, body: t.slice(0, 300000) });
+      };
+      const open = XMLHttpRequest.prototype.open, send = XMLHttpRequest.prototype.send;
+      XMLHttpRequest.prototype.open = function (m, u, ...rest) { this.__req = m + ' ' + u; return open.call(this, m, u, ...rest); };
       XMLHttpRequest.prototype.send = function (...a) {
-        this.addEventListener('load', () => { try { keep(this.responseText); } catch (e) {} });
+        const req = (this.__req || '') + (typeof a[0] === 'string' ? ' body=' + a[0].slice(0, 300) : '');
+        this.addEventListener('load', () => { try { keep(this.responseText, req); } catch (e) {} });
         return send.apply(this, a);
       };
       const f = window.fetch;
-      window.fetch = async (...a) => { const r = await f(...a); r.clone().text().then(keep).catch(() => {}); return r; };
+      window.fetch = async (...a) => {
+        const r = await f(...a);
+        r.clone().text().then(t => keep(t, 'fetch ' + String(a[0]))).catch(() => {});
+        return r;
+      };
     })();
     """
 
@@ -81,64 +76,74 @@ final class HiddenSite: NSObject, WKNavigationDelegate {
         return pageLoaded
     }
 
+    /// Every branch the site's selector knows: entries in the page plus any HTML the popup's requests returned.
     func inventoryOptions() async -> [InventoryOption] {
         guard await waitForPage() else { return [] }
-        // The nearest branch is drawn first and the rest a moment later: wait until the count stops changing.
         let js = """
         document.querySelector('.woocommerce-multi-inventory-open-poup')?.click();
-        const sel = '.woocommerce-multi-inventory-popup-locations-location';
-        let last = -1, stable = 0;
-        for (let i = 0; i < 80 && stable < 5; i++) {
-          const n = document.querySelectorAll(sel).length;
-          stable = (n > 0 && n === last) ? stable + 1 : 0;
-          last = n;
+        const strings = v => typeof v === 'string' ? [v] : Array.isArray(v) ? v.flatMap(strings)
+          : (v && typeof v === 'object') ? Object.values(v).flatMap(strings) : [];
+        const collect = () => {
+          const found = new Map();
+          const take = root => root.querySelectorAll('[data-id][data-lat]').forEach(a => {
+            if (found.has(a.dataset.id)) return;
+            const text = c => a.querySelector('[class*="' + c + '"]')?.textContent ?? '';
+            found.set(a.dataset.id, { id: a.dataset.id, name: a.dataset.name || text('location-name'),
+              lat: a.dataset.lat, lng: a.dataset.lng, address: text('location-address'), distance: text('location-distance') });
+          });
+          take(document);
+          for (const r of window.__raw ?? []) {
+            let parts; try { parts = strings(JSON.parse(r.body)); } catch (e) { parts = [r.body]; }
+            parts.filter(p => p.includes('data-lat')).forEach(p => take(new DOMParser().parseFromString(p, 'text/html')));
+          }
+          return [...found.values()];
+        };
+        // Entries arrive in steps (nearest first, the rest later): wait until the count holds for ~3 s (max ~30 s).
+        let last = -1, stable = 0, rows = [];
+        for (let i = 0; i < 100 && stable < 10; i++) {
+          rows = collect();
+          stable = (rows.length > 0 && rows.length === last) ? stable + 1 : 0;
+          last = rows.length;
           await new Promise(r => setTimeout(r, 300));
         }
-        return [...document.querySelectorAll(sel)].map(e => {
-          let text = e.innerText;
-          const distance = e.querySelector('[class*="location-distance"]')?.innerText ?? '';
-          e.querySelectorAll('[class*="location-distance"], [class*="location-select"]').forEach(x => { text = text.replace(x.innerText, ''); });
-          const attrs = {};
-          [e, ...e.querySelectorAll('*')].forEach(x => { for (const a of x.attributes) if (a.name.startsWith('data-')) attrs[a.name] = a.value; });
-          return { text, distance, attrs };
-        });
+        return rows;
         """
-        let raw = await WebBridge.run(js, in: webView) as? [[String: Any]] ?? []
-        var seen = Set<String>()
-        return raw.enumerated().compactMap { index, row in
-            let distance = (row["distance"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            let lines = (row["text"] as? String ?? "").components(separatedBy: .newlines)
-                .map { $0.trimmingCharacters(in: .whitespaces) }
-                .filter { !$0.isEmpty && !$0.localizedCaseInsensitiveContains("seleccionar") }
-            guard let name = lines.first, seen.insert(name).inserted else { return nil }   // nearest one appears twice
-            // If the plugin exposes coordinates as data-*lat* / data-*lng* attributes, use them directly.
-            let attrs = row["attrs"] as? [String: String] ?? [:]
-            func coord(_ keys: [String]) -> Double? {
-                attrs.first { k, _ in keys.contains { k.lowercased().contains($0) } }.flatMap { Double($0.value) }
-            }
-            let address = lines.count > 1 ? lines.dropFirst().joined(separator: " ")
-                                           : name.components(separatedBy: " - ").dropFirst().joined(separator: " - ")
-            return InventoryOption(id: index, name: name, address: address,
-                                   siteDistance: distance.isEmpty ? nil : distance,
-                                   lat: coord(["lat"]), lng: coord(["lng", "lon"]))
-        }
+        return InventoryOption.parse(await WebBridge.run(js, in: webView) as? [[String: Any]] ?? [])
     }
 
-    /// Clicks the option in the site's popup and waits for the site to confirm; returns the selected branch name.
+    /// Selects the branch the way the site's own links do ("/?inventory=<id>"); if the site doesn't confirm it,
+    /// clicks the entry in its popup. Returns the branch name the site then shows, or nil if it didn't change.
     func select(_ option: InventoryOption) async -> String? {
-        let before = await WebBridge.selectedBranch(in: webView)
-        let js = """
-        const el = [...document.querySelectorAll('.woocommerce-multi-inventory-popup-locations-location')][index];
-        if (!el) return false;
-        (el.querySelector('[class*="location-select"]') ?? el).click();
-        return true;
-        """
-        guard await WebBridge.run(js, in: webView, args: ["index": option.id]) as? Bool == true else { return nil }
-        for _ in 0..<60 {   // ~15 s: the site saves the choice and usually reloads the page
-            try? await Task.sleep(for: .milliseconds(250))
-            if pageLoaded, let now = await WebBridge.selectedBranch(in: webView), now != before { return now }
+        func confirmed(_ name: String?) -> Bool {
+            guard let name else { return false }
+            return name == option.name || AddressMatch.best(name, in: [option.name]) != nil
         }
-        return await WebBridge.selectedBranch(in: webView) ?? option.name
+        pageLoaded = false
+        webView.load(URLRequest(url: URL(string: "/?inventory=\(option.id)", relativeTo: WebBridge.site)!))
+        guard await waitForPage() else { return nil }
+        if let name = await WebBridge.selectedBranch(in: webView), confirmed(name) { return name }
+
+        let click = """
+        document.querySelector('.woocommerce-multi-inventory-open-poup')?.click();
+        for (let i = 0; i < 40; i++) {
+          const el = document.querySelector('[data-id="' + id + '"][data-lat]');
+          if (el) { el.click(); return true; }
+          await new Promise(r => setTimeout(r, 300));
+        }
+        return false;
+        """
+        guard await WebBridge.run(click, in: webView, args: ["id": option.id]) as? Bool == true else { return nil }
+        for _ in 0..<60 {   // ~15 s for the site to save it (it usually reloads the page)
+            try? await Task.sleep(for: .milliseconds(250))
+            if pageLoaded, let name = await WebBridge.selectedBranch(in: webView), confirmed(name) { return name }
+        }
+        return nil
+    }
+
+    /// Requests the page's scripts made that returned branch data (for the diagnostics report).
+    func capturedRequests() async -> String {
+        await WebBridge.run("return (window.__raw ?? []).map(r => r.req + '\\n' + r.body.slice(0, 600)).join('\\n---\\n')",
+                            in: webView) as? String ?? ""
     }
 }
 
@@ -155,11 +160,17 @@ struct BranchPickerView: View {
     @State private var location = LocationProvider()
     @State private var options: [InventoryOption] = []
     @State private var loading = true
-    @State private var selectedID: Int?
+    @State private var selectedID: String?
     @State private var saving = false
     @State private var camera: MapCameraPosition = .userLocation(fallback: .automatic)
 
     private var selected: InventoryOption? { options.first { $0.id == selectedID } }
+
+    /// Nearest first: by real distance once we know where the user is, else in the site's order (already by distance).
+    private var sorted: [InventoryOption] {
+        guard let here = location.location else { return options }
+        return options.sorted { ($0.distance(from: here) ?? .infinity) < ($1.distance(from: here) ?? .infinity) }
+    }
 
     var body: some View {
         NavigationStack {
@@ -214,21 +225,20 @@ struct BranchPickerView: View {
             } description: {
                 Text("Podés elegir la sucursal con el selector del sitio.")
             } actions: {
-                Button("Abrir selector del sitio") {
-                    dismiss()
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(600))   // let this sheet close first
-                        shop.pickBranchOnWeb()
-                    }
-                }
-                .buttonStyle(.borderedProminent)
+                Button("Abrir selector del sitio") { openSiteSelector() }
+                    .buttonStyle(.borderedProminent)
             }
         } else {
             ScrollViewReader { proxy in
-                List(options) { o in   // the site already lists them nearest first
-                    Button { selectedID = o.id } label: { row(o) }
-                        .listRowBackground(o.id == selectedID ? Color.brand.opacity(0.15) : nil)
-                        .id(o.id)
+                List {
+                    ForEach(sorted) { o in
+                        Button { selectedID = o.id } label: { row(o) }
+                            .listRowBackground(o.id == selectedID ? Color.brand.opacity(0.15) : nil)
+                            .id(o.id)
+                    }
+                    if options.count <= 1 {
+                        Button("¿No ves tu sucursal? Abrir el selector del sitio") { openSiteSelector() }
+                    }
                 }
                 .listStyle(.plain)
                 .onChange(of: selectedID) { _, id in
@@ -300,45 +310,35 @@ struct BranchPickerView: View {
         }
     }
 
+    private func openSiteSelector() {
+        dismiss()
+        Task {
+            try? await Task.sleep(for: .milliseconds(600))   // let this sheet close first
+            shop.pickBranchOnWeb()
+        }
+    }
+
     private func load() async {
         // Light page: the popup is on every page, this one has almost no images.
         let site = picker ?? HiddenSite(path: "/rastrear-pedido/")
         picker = site
         options = await site.inventoryOptions()
         loading = false
-        await locateBranches(site)
+        withAnimation { camera = .automatic }   // frame the user and every branch
+        await geocodeMissing()
     }
 
-    /// Fills in coordinates for the map: saved ones, then the popup's own data, then Apple's geocoder.
-    private func locateBranches(_ site: HiddenSite) async {
-        var saved = UserDefaults.standard.dictionary(forKey: "branchCoordinates") as? [String: [Double]] ?? [:]
-        func set(_ i: Int, _ c: CLLocationCoordinate2D) {
-            options[i].lat = c.latitude
-            options[i].lng = c.longitude
-            saved[options[i].name] = [c.latitude, c.longitude]
-        }
-        for i in options.indices where options[i].coordinate == nil {
-            if let c = saved[options[i].name], c.count == 2 { options[i].lat = c[0]; options[i].lng = c[1] }
-        }
-        if options.contains(where: { $0.coordinate == nil }) {
-            let branches = await site.places(attempts: 4)   // the popup is already loaded by now
-            let candidates = branches.map { $0.title + " " + $0.address }
-            for i in options.indices where options[i].coordinate == nil {
-                if let j = AddressMatch.best(options[i].name + " " + options[i].address, in: candidates) { set(i, branches[j].coordinate) }
-            }
-        }
-        camera = .automatic   // frame the user and every pin found so far
-        // Apple's geocoder is rate-limited: one at a time, nearest first, pins appear as they resolve.
+    /// The site gives coordinates for its branches; only if one lacks them, ask Apple's geocoder (one at a time).
+    private func geocodeMissing() async {
         let near = location.location.map { CLCircularRegion(center: $0.coordinate, radius: 100_000, identifier: "near") }
         for i in options.indices where options[i].coordinate == nil {
             let street = AddressMatch.streetPart(options[i].address.isEmpty ? options[i].name : options[i].address)
             if let marks = try? await CLGeocoder().geocodeAddressString(street + ", Paraguay", in: near,
                                                                          preferredLocale: Locale(identifier: "es_PY")),
                let c = marks.first?.location?.coordinate {
-                set(i, c)
+                options[i].lat = c.latitude
+                options[i].lng = c.longitude
             }
         }
-        UserDefaults.standard.set(saved, forKey: "branchCoordinates")
-        if selectedID == nil { withAnimation { camera = .automatic } }
     }
 }

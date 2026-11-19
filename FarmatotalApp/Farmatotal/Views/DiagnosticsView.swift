@@ -119,9 +119,8 @@ struct DiagnosticsView: View {
         let options = await popup.inventoryOptions()
         add("Selector de sucursal", options.count > 1, "\(options.count) sucursales: " + options.prefix(5).map(\.shortName).joined(separator: ", "))
         let withCoords = options.filter { $0.coordinate != nil }.count
-        let popupPlaces = await popup.places(attempts: 8)
-        add("Ubicación desde el selector", withCoords > 0 || !popupPlaces.isEmpty,
-            "con coordenadas en la lista: \(withCoords); datos capturados: \(popupPlaces.count)")
+        add("Ubicación de las sucursales", withCoords == options.count && withCoords > 0,
+            "\(withCoords) de \(options.count) con coordenadas del sitio")
         let stores = await located
         add("Página Sucursales", !stores.isEmpty, "\(stores.count) sucursales con ubicación" +
             (stores.first.map { " (ej.: \($0.title), \($0.address))" } ?? ""))
@@ -132,7 +131,7 @@ struct DiagnosticsView: View {
         sample("Popup: primer elemento", await WebBridge.run(
             "return document.querySelector('.woocommerce-multi-inventory-popup-locations-location')?.outerHTML ?? ''",
             in: popup.webView) as? String)
-        sample("Popup: datos capturados", await WebBridge.run("return JSON.stringify(window.__geo ?? []).slice(0, 1500)", in: popup.webView) as? String)
+        sample("Popup: pedidos del sitio", await popup.capturedRequests())
         sample("Sucursales: datos capturados", await WebBridge.run("return JSON.stringify(window.__geo ?? []).slice(0, 1500)", in: locator.webView) as? String)
         sample("Sucursales: scripts de la página", await WebBridge.run(
             "return [...document.scripts].map(s => s.src).filter(Boolean).filter(s => /store|locator|asl|inventory/i.test(s)).join('\\n')",

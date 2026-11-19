@@ -236,3 +236,35 @@ extension Branch {
         return lines.isEmpty ? nil : lines.joined(separator: "\n")
     }
 }
+
+/// One branch as offered by the site's own selector (multi-inventory plugin). `id` is the site's inventory ID,
+/// the same one its "?inventory=<id>" links use.
+struct InventoryOption: Identifiable, Hashable {
+    let id: String
+    let name: String
+    let address: String
+    let siteDistance: String?
+    var lat: Double?
+    var lng: Double?
+
+    var shortName: String { name.components(separatedBy: " - ").first ?? name }
+    var coordinate: CLLocationCoordinate2D? { lat.flatMap { la in lng.map { CLLocationCoordinate2D(latitude: la, longitude: $0) } } }
+    func distance(from here: CLLocation) -> CLLocationDistance? {
+        coordinate.map { here.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude)) }
+    }
+
+    /// Rows read from the popup's entries: <a data-id data-name data-lat data-lng> plus address and distance text.
+    static func parse(_ rows: [[String: Any]]) -> [InventoryOption] {
+        func clean(_ v: Any?) -> String { ((v as? String) ?? "").split(whereSeparator: \.isWhitespace).joined(separator: " ") }
+        var seen = Set<String>()
+        return rows.compactMap { r in
+            let id = clean(r["id"]), name = clean(r["name"])
+            guard !id.isEmpty, !name.isEmpty, seen.insert(id).inserted else { return nil }
+            let address = clean(r["address"]), distance = clean(r["distance"])
+            return InventoryOption(id: id, name: name,
+                                   address: address.isEmpty ? name.components(separatedBy: " - ").dropFirst().joined(separator: " - ") : address,
+                                   siteDistance: distance.isEmpty ? nil : distance,
+                                   lat: Double(clean(r["lat"])), lng: Double(clean(r["lng"])))
+        }
+    }
+}
