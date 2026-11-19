@@ -27,7 +27,8 @@ enum API {
         let parts = [r.headers["cf-mitigated"].map { "cf-mitigated: \($0)" },
                      r.headers["server"].map { "server: \($0)" },
                      title.map { "“\($0)”" },
-                     r.redirected ? "→ " + (URL(string: r.url).map { $0.path + ($0.query.map { "?" + $0 } ?? "") } ?? r.url) : nil]
+                     // URLComponents keeps the trailing "/" that URL.path drops.
+                     r.redirected ? "→ " + (URLComponents(string: r.url).map { $0.path + ($0.query.map { "?" + $0 } ?? "") } ?? r.url) : nil]
             .compactMap { $0 }
         return parts.isEmpty ? "" : "\n(" + parts.joined(separator: " · ") + ")"
     }
