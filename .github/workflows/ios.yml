@@ -1,0 +1,50 @@
+name: iOS
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-latest
+    defaults:
+      run:
+        working-directory: FarmatotalApp
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tests
+        # Runner images differ in which simulators they ship: use any iPhone, downloading the iOS runtime if none exists.
+        run: |
+          pick() { xcrun simctl list devices available -j | python3 -c "import json,sys; d=json.load(sys.stdin)['devices']; print(next((x['udid'] for k,v in d.items() if 'iOS' in k for x in v if 'iPhone' in x['name']), ''))"; }
+          UDID=$(pick)
+          if [ -z "$UDID" ]; then
+            xcodebuild -downloadPlatform iOS
+            RUNTIME=$(xcrun simctl list runtimes available -j | python3 -c "import json,sys; print([r['identifier'] for r in json.load(sys.stdin)['runtimes'] if r['platform']=='iOS'][-1])")
+            DEVTYPE=$(xcrun simctl list devicetypes -j | python3 -c "import json,sys; print([t['identifier'] for t in json.load(sys.stdin)['devicetypes'] if 'iPhone' in t['name']][-1])")
+            UDID=$(xcrun simctl create TestPhone "$DEVTYPE" "$RUNTIME")
+          fi
+          xcodebuild test -quiet -project Farmatotal.xcodeproj -scheme Farmatotal \
+            -destination "id=$UDID" CODE_SIGNING_ALLOWED=NO
+
+      - name: Crash logs
+        if: failure()
+        run: |
+          for f in $(find ~/Library/Logs/DiagnosticReports -name 'Farmatotal*' 2>/dev/null | head -2); do echo "== $f"; head -c 12000 "$f"; done
+
+      # Unsigned: install with Sideloadly/AltStore (they sign it with your Apple ID) or sign it with your own certificate.
+      - name: Build IPA
+        if: success() || failure()   # still produce the app when tests fail; the job stays red
+        run: |
+          xcodebuild build -quiet -project Farmatotal.xcodeproj -scheme Farmatotal -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/Farmatotal.app Payload/
+          zip -qry Farmatotal.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        if: success() || failure()
+        with:
+          name: Farmatotal-ipa
+          path: FarmatotalApp/Farmatotal.ipa

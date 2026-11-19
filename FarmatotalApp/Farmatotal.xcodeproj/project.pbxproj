@@ -1,0 +1,511 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		0E0C4916A5E7205F63AE1BED /* Account.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EC50A034DB8590D3D7F8158 /* Account.swift */; };
+		16C9C41C300B5EA34E56A590 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E396A51AF72FB61FEB2C3DC /* HomeView.swift */; };
+		1A20C42406811DD6D843182D /* StockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D0680879C16E62A5FA59EAB /* StockView.swift */; };
+		23B1053D98AA5EED77B55FEC /* BranchesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3D6095D4AB66A233922C46E /* BranchesView.swift */; };
+		37B7F24A80D51BD8289CECCD /* FormModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7020C4C947457D0338BB355E /* FormModel.swift */; };
+		3C9B2E6260839B59A54CD4EA /* API.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2DDC83D80CBA2A1634EACF7 /* API.swift */; };
+		4A200BD2BD2FA41098D4A971 /* WebSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E11A59D1B6DE3CABCA78C144 /* WebSheet.swift */; };
+		50F74222DA13224BAAE3EF11 /* DiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E4626E88140A33315C8431B /* DiagnosticsView.swift */; };
+		52C6327166C7A9DAFBDECA9D /* SiteForm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C34FE945024DEF045CCFAF8 /* SiteForm.swift */; };
+		660518E3A383D4CF7A6CDBE7 /* CartAndAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5976248648C728187BBB0EC /* CartAndAccount.swift */; };
+		68715A9E54EBDAA7EC32D689 /* ModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD04055499165413F3A11AFB /* ModelTests.swift */; };
+		6E85D53396F8B8DBB25A58D8 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E62B260A8E3461E3ACFC01C6 /* SearchView.swift */; };
+		8571C997EAECF20CDA8BD291 /* ProductViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 532736D3B87D1D731AF74D16 /* ProductViews.swift */; };
+		863EB324805E08987FE2FC96 /* Shop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B8AF20A14C9C06AD52EC0E /* Shop.swift */; };
+		93B854FFFE990D9E43FCBD7C /* MyAccountViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5135BE287109F991DF37266C /* MyAccountViews.swift */; };
+		BBA2A6EA6E44D5CDD426C38C /* FarmatotalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C94FDBB32ABAB23EDFB71864 /* FarmatotalApp.swift */; };
+		BF951ACF5AE6721EE1A1E404 /* StockAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A4595F2B7B66481F1AB6EB5 /* StockAPI.swift */; };
+		C21EFFFA671C6409CBB6B8DE /* WebBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CA08250F6A8B1CE2798A4FB /* WebBridge.swift */; };
+		D20BDA9DACBECA11B61AA0E6 /* BranchPicker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1D941D117B9DC6121B2EB4C4 /* BranchPicker.swift */; };
+		D8986AEE455580D641C3A2EB /* SiteFormView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2CA46B9BF700C31796B4EC03 /* SiteFormView.swift */; };
+		F3167BF49DDB735E4D81DF0C /* Models.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2BDB93F60365D87DED2C5330 /* Models.swift */; };
+		F6E089867A58439CC6340A3D /* Formatting.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1F6F7C7E1D8914A03633F283 /* Formatting.swift */; };
+		F91E1105021D5DB2144E24CE /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A5B2FB6789C58A8A33C66FB4 /* Assets.xcassets */; };
+		FE62233B59560C2DDC6DB205 /* Theme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8BD132D0E3519B82EBA43726 /* Theme.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		C51CF24589901AFB86CA9346 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = AEAFD83B6E50A5F0274FA82F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = B4062967B6B4790F3341322C;
+			remoteInfo = Farmatotal;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		12B8AF20A14C9C06AD52EC0E /* Shop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Shop.swift; sourceTree = "<group>"; };
+		1D941D117B9DC6121B2EB4C4 /* BranchPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BranchPicker.swift; sourceTree = "<group>"; };
+		1F6F7C7E1D8914A03633F283 /* Formatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatting.swift; sourceTree = "<group>"; };
+		2BDB93F60365D87DED2C5330 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		2C34FE945024DEF045CCFAF8 /* SiteForm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiteForm.swift; sourceTree = "<group>"; };
+		2CA46B9BF700C31796B4EC03 /* SiteFormView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SiteFormView.swift; sourceTree = "<group>"; };
+		2D0680879C16E62A5FA59EAB /* StockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockView.swift; sourceTree = "<group>"; };
+		2E4626E88140A33315C8431B /* DiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsView.swift; sourceTree = "<group>"; };
+		3EC50A034DB8590D3D7F8158 /* Account.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Account.swift; sourceTree = "<group>"; };
+		4E396A51AF72FB61FEB2C3DC /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		5135BE287109F991DF37266C /* MyAccountViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyAccountViews.swift; sourceTree = "<group>"; };
+		532736D3B87D1D731AF74D16 /* ProductViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductViews.swift; sourceTree = "<group>"; };
+		6A4595F2B7B66481F1AB6EB5 /* StockAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockAPI.swift; sourceTree = "<group>"; };
+		7020C4C947457D0338BB355E /* FormModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FormModel.swift; sourceTree = "<group>"; };
+		7A8C32C65148853A8DE9162E /* FarmatotalTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FarmatotalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		83213125FEF35230F30BF052 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		8BD132D0E3519B82EBA43726 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		9CA08250F6A8B1CE2798A4FB /* WebBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebBridge.swift; sourceTree = "<group>"; };
+		A5976248648C728187BBB0EC /* CartAndAccount.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CartAndAccount.swift; sourceTree = "<group>"; };
+		A5B2FB6789C58A8A33C66FB4 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		C94FDBB32ABAB23EDFB71864 /* FarmatotalApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FarmatotalApp.swift; sourceTree = "<group>"; };
+		D3D6095D4AB66A233922C46E /* BranchesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BranchesView.swift; sourceTree = "<group>"; };
+		DD04055499165413F3A11AFB /* ModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModelTests.swift; sourceTree = "<group>"; };
+		E11A59D1B6DE3CABCA78C144 /* WebSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSheet.swift; sourceTree = "<group>"; };
+		E2DDC83D80CBA2A1634EACF7 /* API.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = API.swift; sourceTree = "<group>"; };
+		E62B260A8E3461E3ACFC01C6 /* SearchView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SearchView.swift; sourceTree = "<group>"; };
+		EC078C9D6B56D181A8518087 /* Farmatotal.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Farmatotal.app; sourceTree = BUILT_PRODUCTS_DIR; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		457F9C6D8079188E7AE470EE /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				EC078C9D6B56D181A8518087 /* Farmatotal.app */,
+				7A8C32C65148853A8DE9162E /* FarmatotalTests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		80E3C40B06CB07FBD6B7A786 /* Core */ = {
+			isa = PBXGroup;
+			children = (
+				3EC50A034DB8590D3D7F8158 /* Account.swift */,
+				E2DDC83D80CBA2A1634EACF7 /* API.swift */,
+				1F6F7C7E1D8914A03633F283 /* Formatting.swift */,
+				7020C4C947457D0338BB355E /* FormModel.swift */,
+				2BDB93F60365D87DED2C5330 /* Models.swift */,
+				12B8AF20A14C9C06AD52EC0E /* Shop.swift */,
+				2C34FE945024DEF045CCFAF8 /* SiteForm.swift */,
+				6A4595F2B7B66481F1AB6EB5 /* StockAPI.swift */,
+				8BD132D0E3519B82EBA43726 /* Theme.swift */,
+				9CA08250F6A8B1CE2798A4FB /* WebBridge.swift */,
+			);
+			path = Core;
+			sourceTree = "<group>";
+		};
+		97D71ABBCB936F92BDFE4FB6 /* FarmatotalTests */ = {
+			isa = PBXGroup;
+			children = (
+				DD04055499165413F3A11AFB /* ModelTests.swift */,
+			);
+			path = FarmatotalTests;
+			sourceTree = "<group>";
+		};
+		D8B16A9E2C163E05E2CE3767 /* Farmatotal */ = {
+			isa = PBXGroup;
+			children = (
+				A5B2FB6789C58A8A33C66FB4 /* Assets.xcassets */,
+				C94FDBB32ABAB23EDFB71864 /* FarmatotalApp.swift */,
+				83213125FEF35230F30BF052 /* Info.plist */,
+				80E3C40B06CB07FBD6B7A786 /* Core */,
+				FE9B82A4B7BC8D1479C20376 /* Views */,
+			);
+			path = Farmatotal;
+			sourceTree = "<group>";
+		};
+		F4D2D10298105D3CFAA69E78 = {
+			isa = PBXGroup;
+			children = (
+				D8B16A9E2C163E05E2CE3767 /* Farmatotal */,
+				97D71ABBCB936F92BDFE4FB6 /* FarmatotalTests */,
+				457F9C6D8079188E7AE470EE /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		FE9B82A4B7BC8D1479C20376 /* Views */ = {
+			isa = PBXGroup;
+			children = (
+				D3D6095D4AB66A233922C46E /* BranchesView.swift */,
+				1D941D117B9DC6121B2EB4C4 /* BranchPicker.swift */,
+				A5976248648C728187BBB0EC /* CartAndAccount.swift */,
+				2E4626E88140A33315C8431B /* DiagnosticsView.swift */,
+				4E396A51AF72FB61FEB2C3DC /* HomeView.swift */,
+				5135BE287109F991DF37266C /* MyAccountViews.swift */,
+				532736D3B87D1D731AF74D16 /* ProductViews.swift */,
+				E62B260A8E3461E3ACFC01C6 /* SearchView.swift */,
+				2CA46B9BF700C31796B4EC03 /* SiteFormView.swift */,
+				2D0680879C16E62A5FA59EAB /* StockView.swift */,
+				E11A59D1B6DE3CABCA78C144 /* WebSheet.swift */,
+			);
+			path = Views;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		2775C7DFC0D4C3FFF7D179F9 /* FarmatotalTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 068554C2B3D1F0F00F34C6F5 /* Build configuration list for PBXNativeTarget "FarmatotalTests" */;
+			buildPhases = (
+				BF4007066FCBFB64ECC8E9D3 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				2A50D02E462FC6C9DF9DFC27 /* PBXTargetDependency */,
+			);
+			name = FarmatotalTests;
+			packageProductDependencies = (
+			);
+			productName = FarmatotalTests;
+			productReference = 7A8C32C65148853A8DE9162E /* FarmatotalTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		B4062967B6B4790F3341322C /* Farmatotal */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 6B119532F9AC6719BDDC8B2D /* Build configuration list for PBXNativeTarget "Farmatotal" */;
+			buildPhases = (
+				64C5591C2D4A8D852A905548 /* Sources */,
+				98D61B68A7E5767C665F8AAA /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Farmatotal;
+			packageProductDependencies = (
+			);
+			productName = Farmatotal;
+			productReference = EC078C9D6B56D181A8518087 /* Farmatotal.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		AEAFD83B6E50A5F0274FA82F /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 1430;
+				TargetAttributes = {
+					B4062967B6B4790F3341322C = {
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 722DAB82DBFC28F11E1B8EB6 /* Build configuration list for PBXProject "Farmatotal" */;
+			compatibilityVersion = "Xcode 14.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				en,
+			);
+			mainGroup = F4D2D10298105D3CFAA69E78;
+			minimizedProjectReferenceProxies = 1;
+			preferredProjectObjectVersion = 77;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				B4062967B6B4790F3341322C /* Farmatotal */,
+				2775C7DFC0D4C3FFF7D179F9 /* FarmatotalTests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		98D61B68A7E5767C665F8AAA /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				F91E1105021D5DB2144E24CE /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		64C5591C2D4A8D852A905548 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				3C9B2E6260839B59A54CD4EA /* API.swift in Sources */,
+				0E0C4916A5E7205F63AE1BED /* Account.swift in Sources */,
+				D20BDA9DACBECA11B61AA0E6 /* BranchPicker.swift in Sources */,
+				23B1053D98AA5EED77B55FEC /* BranchesView.swift in Sources */,
+				660518E3A383D4CF7A6CDBE7 /* CartAndAccount.swift in Sources */,
+				50F74222DA13224BAAE3EF11 /* DiagnosticsView.swift in Sources */,
+				BBA2A6EA6E44D5CDD426C38C /* FarmatotalApp.swift in Sources */,
+				37B7F24A80D51BD8289CECCD /* FormModel.swift in Sources */,
+				F6E089867A58439CC6340A3D /* Formatting.swift in Sources */,
+				16C9C41C300B5EA34E56A590 /* HomeView.swift in Sources */,
+				F3167BF49DDB735E4D81DF0C /* Models.swift in Sources */,
+				93B854FFFE990D9E43FCBD7C /* MyAccountViews.swift in Sources */,
+				8571C997EAECF20CDA8BD291 /* ProductViews.swift in Sources */,
+				6E85D53396F8B8DBB25A58D8 /* SearchView.swift in Sources */,
+				863EB324805E08987FE2FC96 /* Shop.swift in Sources */,
+				52C6327166C7A9DAFBDECA9D /* SiteForm.swift in Sources */,
+				D8986AEE455580D641C3A2EB /* SiteFormView.swift in Sources */,
+				BF951ACF5AE6721EE1A1E404 /* StockAPI.swift in Sources */,
+				1A20C42406811DD6D843182D /* StockView.swift in Sources */,
+				FE62233B59560C2DDC6DB205 /* Theme.swift in Sources */,
+				C21EFFFA671C6409CBB6B8DE /* WebBridge.swift in Sources */,
+				4A200BD2BD2FA41098D4A971 /* WebSheet.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		BF4007066FCBFB64ECC8E9D3 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				68715A9E54EBDAA7EC32D689 /* ModelTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		2A50D02E462FC6C9DF9DFC27 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = B4062967B6B4790F3341322C /* Farmatotal */;
+			targetProxy = C51CF24589901AFB86CA9346 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		43557B20703DEDF60E33799D /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				INFOPLIST_FILE = Farmatotal/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = py.com.farmatotal.app;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		5EE7BEE71D8F0971FDC7AC47 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				CODE_SIGN_STYLE = Automatic;
+				INFOPLIST_FILE = Farmatotal/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = py.com.farmatotal.app;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		69DA0F8B69E4A30725E8C550 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Debug;
+		};
+		8C5C3114DB611B6C8BA01FFE /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = py.com.farmatotal.FarmatotalTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Farmatotal.app/Farmatotal";
+			};
+			name = Release;
+		};
+		C6DDFF38E7EC5D11BDC7D592 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = py.com.farmatotal.FarmatotalTests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Farmatotal.app/Farmatotal";
+			};
+			name = Debug;
+		};
+		E6378B557D933B3C0A12DB20 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		068554C2B3D1F0F00F34C6F5 /* Build configuration list for PBXNativeTarget "FarmatotalTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C6DDFF38E7EC5D11BDC7D592 /* Debug */,
+				8C5C3114DB611B6C8BA01FFE /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		6B119532F9AC6719BDDC8B2D /* Build configuration list for PBXNativeTarget "Farmatotal" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				5EE7BEE71D8F0971FDC7AC47 /* Debug */,
+				43557B20703DEDF60E33799D /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		722DAB82DBFC28F11E1B8EB6 /* Build configuration list for PBXProject "Farmatotal" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				69DA0F8B69E4A30725E8C550 /* Debug */,
+				E6378B557D933B3C0A12DB20 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = AEAFD83B6E50A5F0274FA82F /* Project object */;
+}
