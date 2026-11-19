@@ -278,7 +278,7 @@ enum BranchCache {
 
     /// Store codes for the stock service, with the name the checkout shows for each.
     static var codes: [(code: String, name: String)] {
-        get { (UserDefaults.standard.array(forKey: "branchCodes") as? [[String]] ?? []).compactMap { $0.count == 2 ? ($0[0], $0[1]) : nil } }
-        set { UserDefaults.standard.set(newValue.map { [$0.code, $0.name] }, forKey: "branchCodes") }
+        get { (UserDefaults.standard.array(forKey: "branchCodesChecked") as? [[String]] ?? []).compactMap { $0.count == 2 ? ($0[0], $0[1]) : nil } }
+        set { UserDefaults.standard.set(newValue.map { [$0.code, $0.name] }, forKey: "branchCodesChecked") }
     }
 }

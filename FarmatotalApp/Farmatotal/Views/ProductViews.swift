@@ -287,6 +287,7 @@ struct ProductDetailView: View {
     @State private var details: AttributedString?
     @State private var error: String?
     @State private var showStock = false
+    @State private var branchStock: (branch: String, units: Int)?   // real stock at the user's branch
     @Environment(Shop.self) private var shop
 
     init(product: Product) {
@@ -320,6 +321,13 @@ struct ProductDetailView: View {
         }
         guard let p = product, details == nil, related.isEmpty else { return }
         if let html = p.description, !html.isEmpty { details = htmlAttributed(html) }
+        // The website's "Disponible" isn't synced with branch stock: ask the stock service for the user's branch.
+        let codes = BranchCache.codes   // only saved once verified against the stock service
+        if let branch = shop.branchName, let sku = p.sku, !sku.isEmpty,
+           let i = AddressMatch.bestName(branch, in: codes.map(\.name)),
+           let units = try? await StockAPI.units(sku: sku, branch: codes[i].code) {
+            branchStock = (branch.components(separatedBy: " - ").first ?? branch, units)
+        }
         if let cat = p.categories?.last,
            let r = try? await API.products(ProductQuery(category: cat.id), page: 1) {
             related = Array(r.items.filter { $0.id != p.id }.prefix(10))
@@ -436,7 +444,13 @@ struct ProductDetailView: View {
 
     private func stockLabel(_ p: Product) -> some View {
         Group {
-            if p.inStock {
+            if let b = branchStock {
+                if b.units > 0 {
+                    Label("Disponible en \(b.branch) · \(b.units) unid.", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
+                } else {
+                    Label("Sin stock en \(b.branch) · mirá otras sucursales abajo", systemImage: "exclamationmark.circle.fill").foregroundStyle(.orange)
+                }
+            } else if p.inStock {
                 if let left = p.lowStockRemaining {
                     Label("Disponible · quedan \(left)", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
                 } else {

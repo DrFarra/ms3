@@ -176,6 +176,9 @@ enum BranchDirectory {
         return fresh.count > 1 ? fresh : BranchCache.options.isEmpty ? fresh : BranchCache.options
     }
 
+    /// Why `codes` came back empty, in words for the user.
+    static var codesProblem = "El sitio no mostró su lista de sucursales. Iniciá sesión en Cuenta → Mi cuenta (o agregá algo al carrito) y volvé a intentar."
+
     /// The checkout form has the field when the cart has items; the billing-address form has it when logged in.
     static func codes(host: ([HiddenSite]) -> Void) async -> [(code: String, name: String)] {
         if case let cached = BranchCache.codes, !cached.isEmpty { return cached }
@@ -184,12 +187,33 @@ enum BranchDirectory {
             host([site])
             let found = await site.branchCodes()
             host([])
-            if !found.isEmpty {
-                BranchCache.codes = found
-                return found
+            guard !found.isEmpty else { continue }
+            guard await codesWork(found.map(\.code)) else {
+                codesProblem = "No se pudo verificar el stock: el sitio usa códigos de sucursal que el servicio de stock no reconoce."
+                return []
             }
+            BranchCache.codes = found
+            return found
         }
         return []
+    }
+
+    /// The stock service answers "0 units" (not an error) for codes it doesn't know, so before trusting the codes,
+    /// look up popular products with them: if none shows stock at any of these branches, they aren't the store's codes.
+    static func codesWork(_ codes: [String]) async -> Bool {
+        guard let popular = try? await API.products(ProductQuery(sort: .popularity), page: 1) else { return true }   // can't check: don't block
+        let skus = popular.items.compactMap(\.sku).filter { !$0.isEmpty }.prefix(3)
+        let sample = codes.prefix(20)
+        return await withTaskGroup(of: Int.self) { group in
+            for sku in skus {
+                for code in sample { group.addTask { (try? await StockAPI.units(sku: sku, branch: code)) ?? 0 } }
+            }
+            for await units in group where units > 0 {
+                group.cancelAll()
+                return true
+            }
+            return false
+        }
     }
 }
 

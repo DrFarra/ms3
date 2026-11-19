@@ -1,63 +1,52 @@
 import SwiftUI
+import MapKit
 import CoreLocation
 
-/// Units of one product at every branch (Farmatotal's stock service). Tapping a branch shows it on the map.
+/// Map of the branches that have a product in stock (Farmatotal's stock service), with the user's location.
 struct StockView: View {
     let product: Product
 
-    struct Row: Identifiable {
+    struct Spot: Identifiable {
         let id: String              // store code
         let name: String
-        var units: Int?
-        var failed = false
-        var option: InventoryOption?   // the site's branch (coordinates, map) matched by name
+        let units: Int
+        let option: InventoryOption?   // the site's branch (coordinates) matched by name
+        var title: String { option?.shortName ?? name }
     }
 
     @Environment(Shop.self) private var shop
     @Environment(\.dismiss) private var dismiss
-    @State private var rows: [Row] = []
+    @State private var spots: [Spot] = []          // only branches with units > 0
+    @State private var checked = 0                 // branches whose stock was looked up
     @State private var status: String? = "Buscando sucursales…"
     @State private var error: String?
+    @State private var selectedID: String?
+    @State private var camera: MapCameraPosition = .userLocation(fallback: .automatic)
     @State private var hosted: [HiddenSite] = []
     @State private var location = LocationProvider()
 
-    /// In stock first, then nearest, then by name.
-    private var sorted: [Row] {
-        rows.sorted { a, b in
-            let (sa, sb) = ((a.units ?? 0) > 0, (b.units ?? 0) > 0)
-            if sa != sb { return sa }
-            if let here = location.location {
-                let (da, db) = (a.option?.distance(from: here) ?? .infinity, b.option?.distance(from: here) ?? .infinity)
-                if da != db { return da < db }
-            }
-            return a.name.localizedStandardCompare(b.name) == .orderedAscending
-        }
-    }
+    private var selected: Spot? { spots.first { $0.id == selectedID } }
+    private var placed: [Spot] { spots.filter { $0.option?.coordinate != nil } }
 
     var body: some View {
         NavigationStack {
-            List {
-                Section {
-                    Text(product.title).font(.headline)
-                    if let status {
-                        HStack { ProgressView(); Text(status).foregroundStyle(.secondary) }
-                    }
-                } footer: {
-                    if !rows.isEmpty {
-                        let available = rows.filter { ($0.units ?? 0) > 0 }.count
-                        Text("Disponible en \(available) de \(rows.count) sucursales. Tocá una para verla en el mapa.")
-                    }
-                }
-                if let error {
-                    Section { Label(error, systemImage: "exclamationmark.triangle").foregroundStyle(.secondary) }
-                }
-                Section {
-                    ForEach(sorted) { r in
-                        Button { showOnMap(r) } label: { row(r) }
-                            .disabled(r.option == nil)
-                    }
+            Map(position: $camera, selection: $selectedID) {
+                UserAnnotation()
+                ForEach(placed) { s in
+                    Marker("\(s.title) · \(s.units)", systemImage: "cross.case.fill", coordinate: s.option!.coordinate!)
+                        .tint(s.id == selectedID ? Color.red : Color.green)
+                        .tag(s.id)
                 }
             }
+            .mapControls {
+                MapUserLocationButton()
+                MapCompass()
+                MapScaleView()
+            }
+            .safeAreaInset(edge: .top) { banner }
+            .safeAreaInset(edge: .bottom) { if let s = selected { card(s) } }
+            .onChange(of: selectedID) { _, _ in frame() }
+            .onChange(of: location.location) { _, _ in if selectedID == nil { frame() } }
             .navigationTitle("Stock por sucursal")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { dismiss() } } }
@@ -71,38 +60,83 @@ struct StockView: View {
         }
     }
 
-    private func row(_ r: Row) -> some View {
-        HStack(spacing: 12) {
+    @ViewBuilder
+    private var banner: some View {
+        let (icon, text, color): (String, String, Color) = {
+            if let error { return ("exclamationmark.triangle.fill", error, .orange) }
+            if let status { return ("hourglass", status, .secondary) }
+            if spots.isEmpty { return ("xmark.circle.fill", "No hay stock de este producto en ninguna sucursal.", .red) }
+            let unplaced = spots.count - placed.count
+            return ("checkmark.circle.fill",
+                    "Hay stock en \(spots.count) de \(checked) sucursales." + (unplaced > 0 ? " \(unplaced) sin ubicación en el mapa." : ""),
+                    .green)
+        }()
+        HStack(alignment: .top, spacing: 10) {
+            if status != nil && error == nil { ProgressView() } else { Image(systemName: icon).foregroundStyle(color) }
             VStack(alignment: .leading, spacing: 2) {
-                Text(r.option?.shortName ?? r.name).font(.body.weight(.medium)).foregroundStyle(.primary)
-                if let address = r.option?.address, !address.isEmpty {
-                    Text(address).font(.caption).foregroundStyle(.secondary).lineLimit(1)
-                }
-                if let here = location.location, let m = r.option?.distance(from: here) {
-                    Text(m < 1000 ? "\(Int(m)) m" : (m / 1000).formatted(.number.precision(.fractionLength(1))) + " km")
-                        .font(.caption.weight(.semibold)).foregroundStyle(Color.brand)
-                }
+                Text(product.title).font(.caption).foregroundStyle(.secondary).lineLimit(1)
+                Text(text).font(.subheadline.weight(.semibold))
             }
-            Spacer()
-            if let units = r.units {
-                Text(units > 0 ? "\(units) unid." : "Sin stock")
-                    .font(.subheadline.weight(.bold))
-                    .padding(.horizontal, 10).padding(.vertical, 5)
-                    .background((units > 0 ? Color.green : Color.gray).opacity(0.18), in: Capsule())
-                    .foregroundStyle(units > 0 ? Color.green : Color.secondary)
-            } else if r.failed {
-                Text("—").foregroundStyle(.secondary)
-            } else {
-                ProgressView()
-            }
+            Spacer(minLength: 0)
         }
+        .padding(12)
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 14))
+        .padding(.horizontal)
+        .padding(.top, 6)
     }
 
-    private func showOnMap(_ r: Row) {
-        guard let id = r.option?.id else { return }
+    private func card(_ s: Spot) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            HStack(alignment: .firstTextBaseline) {
+                Text(s.title).font(.headline)
+                Spacer()
+                Text("\(s.units) unid.").font(.subheadline.weight(.bold)).foregroundStyle(.green)
+            }
+            if let address = s.option?.address, !address.isEmpty {
+                Text(address).font(.subheadline).foregroundStyle(.secondary)
+            }
+            if let here = location.location, let m = s.option?.distance(from: here) {
+                Text(m < 1000 ? "A \(Int(m)) m" : "A " + (m / 1000).formatted(.number.precision(.fractionLength(1))) + " km")
+                    .font(.caption.weight(.semibold)).foregroundStyle(Color.brand)
+            }
+            HStack {
+                Button { directions(s) } label: {
+                    Label("Cómo llegar", systemImage: "arrow.triangle.turn.up.right.diamond").frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                Button { choose(s) } label: { Label("Elegir sucursal", systemImage: "checkmark").frame(maxWidth: .infinity) }
+                    .buttonStyle(.borderedProminent)
+            }
+        }
+        .padding()
+        .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 18))
+        .padding()
+    }
+
+    /// The selected branch close up; otherwise the user and the 3 nearest branches with stock.
+    private func frame() {
+        if let c = selected?.option?.coordinate {
+            withAnimation { camera = .region(MKCoordinateRegion(center: c, latitudinalMeters: 2000, longitudinalMeters: 2000)) }
+            return
+        }
+        let here = location.location
+        let nearest = here.map { h in placed.sorted { ($0.option?.distance(from: h) ?? .infinity) < ($1.option?.distance(from: h) ?? .infinity) } } ?? placed
+        let points = nearest.prefix(3).compactMap { $0.option?.coordinate } + (here.map { [$0.coordinate] } ?? [])
+        if let region = MKCoordinateRegion.fitting(points) { withAnimation { camera = .region(region) } }
+    }
+
+    private func directions(_ s: Spot) {
+        guard let c = s.option?.coordinate else { return }
+        let item = MKMapItem(placemark: MKPlacemark(coordinate: c))
+        item.name = "Farmatotal \(s.title)"
+        item.openInMaps(launchOptions: [MKLaunchOptionsDirectionsModeKey: MKLaunchOptionsDirectionsModeDefault])
+    }
+
+    private func choose(_ s: Spot) {
+        guard let id = s.option?.id else { return }
         dismiss()
         Task {
-            try? await Task.sleep(for: .milliseconds(600))   // let this sheet close before the map opens
+            try? await Task.sleep(for: .milliseconds(600))   // let this sheet close before the picker opens
             shop.showBranchOnMap(id)
         }
     }
@@ -116,24 +150,28 @@ struct StockView: View {
         let codes = await BranchDirectory.codes { hosted = $0 }
         guard !codes.isEmpty else {
             status = nil
-            error = "El sitio no mostró su lista de sucursales. Iniciá sesión en Cuenta → Mi cuenta (o agregá algo al carrito) y volvé a intentar."
+            error = BranchDirectory.codesProblem
             return
         }
-        status = "Consultando stock…"
+        status = "Consultando stock en \(codes.count) sucursales…"
         let options = await BranchDirectory.options { hosted = $0 }
         let names = options.map(\.name)
-        rows = codes.map { c in Row(id: c.code, name: c.name, option: AddressMatch.bestName(c.name, in: names).map { options[$0] }) }
-
-        await withTaskGroup(of: (String, Int?).self) { group in
-            for code in codes.map(\.code) {
-                group.addTask { (code, try? await StockAPI.units(sku: sku, branch: code)) }
+        var failed = 0
+        await withTaskGroup(of: (code: String, name: String, units: Int?).self) { group in
+            for c in codes {
+                group.addTask { (c.code, c.name, try? await StockAPI.units(sku: sku, branch: c.code)) }
             }
-            for await (code, units) in group {
-                guard let i = rows.firstIndex(where: { $0.id == code }) else { continue }
-                rows[i].units = units
-                rows[i].failed = units == nil
+            for await r in group {
+                guard let units = r.units else { failed += 1; continue }
+                checked += 1
+                if units > 0 {
+                    spots.append(Spot(id: r.code, name: r.name, units: units,
+                                      option: AddressMatch.bestName(r.name, in: names).map { options[$0] }))
+                }
             }
         }
         status = nil
+        if failed > 0 && checked == 0 { error = "No se pudo consultar el stock. Revisá tu conexión y probá de nuevo." }
+        frame()
     }
 }
