@@ -39,6 +39,13 @@ final class ModelTests: XCTestCase {
         XCTAssertNil(Prices(price: "100", regularPrice: "100", currencyMinorUnit: 0).discountPercent)
     }
 
+    func testDiagnosisNamesTheBlocker() {
+        let html = "<html><head><title>Attention Required! | Cloudflare</title></head>"
+        let r = WebBridge.Response(status: 403, body: Data(html.utf8), headers: ["server": "cloudflare"])
+        XCTAssertEqual(API.diagnosis(r), "\n(server: cloudflare · “Attention Required! | Cloudflare”)")
+        XCTAssertEqual(API.diagnosis(WebBridge.Response(status: 403, body: Data(), headers: [:])), "")
+    }
+
     func testQueryPath() {
         var q = ProductQuery(search: "ibuprofeno 400", category: 12, onSale: true, sort: .priceAsc, minPrice: 1000)
         XCTAssertEqual(q.path(page: 2),

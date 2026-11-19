@@ -15,9 +15,19 @@ enum API {
         let r = try await WebBridge.shared.request(path, method: method, json: json, headers: headers)
         guard (200..<300).contains(r.status) else {
             let message = (try? JSONSerialization.jsonObject(with: r.body) as? [String: Any])?["message"] as? String
-            throw APIError(message: message?.htmlPlain ?? "Error \(r.status) del servidor", status: r.status)
+            throw APIError(message: message?.htmlPlain ?? "Error \(r.status) del servidor" + diagnosis(r), status: r.status)
         }
         return (try JSONDecoder.wc.decode(T.self, from: r.body), r)
+    }
+
+    /// Says who blocked a non-JSON error (Cloudflare check, Cloudflare block, web server…) so a screenshot is enough to diagnose it.
+    nonisolated static func diagnosis(_ r: WebBridge.Response) -> String {
+        let html = String(decoding: r.body.prefix(4000), as: UTF8.self)
+        let title = html.range(of: "(?<=<title>)[^<]*", options: [.regularExpression, .caseInsensitive]).map { String(html[$0]).htmlPlain }
+        let parts = [r.headers["cf-mitigated"].map { "cf-mitigated: \($0)" },
+                     r.headers["server"].map { "server: \($0)" },
+                     title.map { "“\($0)”" }].compactMap { $0 }
+        return parts.isEmpty ? "" : "\n(" + parts.joined(separator: " · ") + ")"
     }
 
     static func products(_ query: ProductQuery, page: Int) async throws -> (items: [Product], totalPages: Int) {

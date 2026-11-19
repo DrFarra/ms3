@@ -8,7 +8,7 @@ import WebKit
 final class WebBridge: NSObject, WKNavigationDelegate {
     static let shared = WebBridge()
     static let site = URL(string: "https://www.farmatotal.com.py")!
-    static let storeAPI = "/wp-json/wc/store/v1"
+    nonisolated static let storeAPI = "/wp-json/wc/store/v1"
 
     struct Response {
         let status: Int
@@ -30,10 +30,10 @@ final class WebBridge: NSObject, WKNavigationDelegate {
         reload()
     }
 
-    func reload() {
+    /// Default is the lightest same-origin page; only needed to obtain the origin + Cloudflare clearance.
+    func reload(_ url: URL = WebBridge.site.appending(path: "robots.txt")) {
         isReady = false
-        // Lightest same-origin page; only needed to obtain the origin + Cloudflare clearance.
-        webView.load(URLRequest(url: Self.site.appending(path: "robots.txt")))
+        webView.load(URLRequest(url: url))
     }
 
     // MARK: Requests
@@ -60,8 +60,12 @@ final class WebBridge: NSObject, WKNavigationDelegate {
         let response = Response(status: (dict["status"] as? NSNumber)?.intValue ?? 0,
                                 body: Data((dict["body"] as? String ?? "").utf8),
                                 headers: dict["headers"] as? [String: String] ?? [:])
-        if response.status == 403, response.headers["cf-mitigated"] != nil, retryOnChallenge {
-            reload()   // clearance expired: get a new one (may show the human check) and retry once
+        let blockedPage = response.headers["cf-mitigated"] != nil || response.headers["content-type"]?.contains("text/html") == true
+        if response.status == 403, blockedPage, retryOnChallenge {
+            // Cloudflare may challenge only some paths (e.g. /wp-json) and a fetch() can't show its check.
+            // Navigating to the blocked address lets it show the check; the clearance then covers every request.
+            let target = method == "GET" ? url : Self.site.absoluteString + Self.storeAPI + "/cart"
+            reload(URL(string: target) ?? Self.site)
             return try await request(path, method: method, json: json, headers: headers, retryOnChallenge: false)
         }
         return response
