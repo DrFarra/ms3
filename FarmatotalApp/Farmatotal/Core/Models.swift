@@ -239,7 +239,7 @@ extension Branch {
 
 /// One branch as offered by the site's own selector (multi-inventory plugin). `id` is the site's inventory ID,
 /// the same one its "?inventory=<id>" links use.
-struct InventoryOption: Identifiable, Hashable {
+struct InventoryOption: Identifiable, Hashable, Codable {
     let id: String
     let name: String
     let address: String
@@ -266,5 +266,19 @@ struct InventoryOption: Identifiable, Hashable {
                                    siteDistance: distance.isEmpty ? nil : distance,
                                    lat: Double(clean(r["lat"])), lng: Double(clean(r["lng"])))
         }
+    }
+}
+
+/// Branch lists saved on the phone so screens open instantly; refreshed from the site in the background.
+enum BranchCache {
+    static var options: [InventoryOption] {
+        get { UserDefaults.standard.data(forKey: "inventoryOptions").flatMap { try? JSONDecoder().decode([InventoryOption].self, from: $0) } ?? [] }
+        set { UserDefaults.standard.set(try? JSONEncoder().encode(newValue), forKey: "inventoryOptions") }
+    }
+
+    /// Store codes for the stock service, with the name the checkout shows for each.
+    static var codes: [(code: String, name: String)] {
+        get { (UserDefaults.standard.array(forKey: "branchCodes") as? [[String]] ?? []).compactMap { $0.count == 2 ? ($0[0], $0[1]) : nil } }
+        set { UserDefaults.standard.set(newValue.map { [$0.code, $0.name] }, forKey: "branchCodes") }
     }
 }

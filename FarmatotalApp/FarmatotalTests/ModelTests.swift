@@ -111,6 +111,23 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(o[1].address, "Avda. Cacique Lambare Nº 2654")   // falls back to the part after " - "
     }
 
+    func testStockReply() throws {
+        // Replies captured from api.farmatotal.com.py.
+        let ok = #"{"success":true,"value":[{"stk_articulo":"7840653003828","stk_descripcion":"ALERGINA JARABE FCO. X 100 ML.","stk_cant_act":21,"stk_cant_sol":1,"stk_sucursal":99,"has_stock":"true"}]}"#
+        XCTAssertEqual(try StockAPI.units(from: Data(ok.utf8)), 21)
+        let missing = #"{"success":false,"message":"STK_DETALLE vac¿o"}"#
+        XCTAssertThrowsError(try StockAPI.units(from: Data(missing.utf8)))
+    }
+
+    func testBranchNameMatching() {
+        let names = ["Terminal - Avda. Dr. Fernando De La Mora 2416 Esq. Cedro", "Rio Apa - Avda. Cacique Lambare Nº 2654",
+                     "Medicos Del Chaco - Avda. Médicos Del Chaco 433"]
+        XCTAssertEqual(AddressMatch.bestName("TERMINAL", in: names), 0)                 // checkout often uses short names
+        XCTAssertEqual(AddressMatch.bestName("Farmatotal Río Apa", in: names), 1)
+        XCTAssertEqual(AddressMatch.bestName("Médicos del Chaco", in: names), 2)
+        XCTAssertNil(AddressMatch.bestName("Encarnación", in: names))
+    }
+
     func testQueryPath() {
         var q = ProductQuery(search: "ibuprofeno 400", category: 12, onSale: true, sort: .priceAsc, minPrice: 1000)
         XCTAssertEqual(q.path(page: 2),

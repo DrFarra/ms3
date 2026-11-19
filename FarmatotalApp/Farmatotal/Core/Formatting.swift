@@ -54,6 +54,19 @@ enum AddressMatch {
         return String(address[..<(cut?.lowerBound ?? address.endIndex)]).trimmingCharacters(in: .whitespaces)
     }
 
+    /// Pairs a branch label from another source (e.g. "TERMINAL", "Farmatotal Río Apa") with the site's branch names
+    /// ("Terminal - Avda. …"): same short name first, then a short name contained in the label, then shared address words.
+    static func bestName(_ label: String, in names: [String]) -> Int? {
+        func norm(_ s: String) -> String { words(s).sorted().joined(separator: " ") }
+        let shorts = names.map { norm($0.components(separatedBy: " - ").first ?? $0) }
+        let target = norm(label)
+        if let i = shorts.firstIndex(of: target) { return i }
+        let labelWords = words(label)
+        let containing = shorts.indices.filter { !shorts[$0].isEmpty && Set(shorts[$0].split(separator: " ").map(String.init)).isSubset(of: labelWords) }
+        if containing.count == 1 { return containing[0] }
+        return best(label, in: names)
+    }
+
     /// Index of the candidate sharing the most words with `target`; needs at least 2 in common to avoid false matches.
     static func best(_ target: String, in candidates: [String]) -> Int? {
         let t = words(target)

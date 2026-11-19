@@ -126,6 +126,26 @@ struct DiagnosticsView: View {
             (stores.first.map { " (ej.: \($0.title), \($0.address))" } ?? ""))
         add("Sucursal elegida", true, await WebBridge.selectedBranch(in: popup.webView) ?? "ninguna")
 
+        // Stock per branch: store codes from the checkout's "Sucursal" field + the stock service
+        let codes = await BranchDirectory.codes { extra in sites = [locator, popup] + extra }
+        add("Códigos de sucursal (stock)", !codes.isEmpty,
+            codes.isEmpty ? "no se encontró el campo Sucursal (¿sesión iniciada o carrito con algo?)"
+                          : "\(codes.count): " + codes.prefix(4).map { "\($0.code)=\($0.name)" }.joined(separator: ", "))
+        if let sku = first?.sku, !sku.isEmpty, let c = codes.first {
+            do {
+                let units = try await StockAPI.units(sku: sku, branch: c.code)
+                add("Stock por sucursal", true, "SKU \(sku) en \(c.name): \(units) unid.")
+            } catch { add("Stock por sucursal", false, error.localizedDescription) }
+        }
+        if !codes.isEmpty {
+            let names = options.map(\.name)
+            let unmatched = codes.filter { AddressMatch.bestName($0.name, in: names) == nil }
+            add("Sucursales del stock en el mapa", unmatched.isEmpty,
+                "\(codes.count - unmatched.count) de \(codes.count) ubicadas" +
+                (unmatched.isEmpty ? "" : "; sin ubicar: " + unmatched.prefix(5).map(\.name).joined(separator: ", ")))
+        }
+        sample("Códigos de sucursal", codes.map { "\($0.code)=\($0.name)" }.joined(separator: "\n"))
+
         // Raw shapes, so any mismatch can be fixed exactly
         sample("Producto (claves)", first.map { _ in "id, name, prices, images, categories… (decodificó bien)" })
         sample("Popup: primer elemento", await WebBridge.run(

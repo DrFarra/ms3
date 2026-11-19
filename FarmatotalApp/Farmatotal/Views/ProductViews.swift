@@ -286,6 +286,7 @@ struct ProductDetailView: View {
     @State private var related: [Product] = []
     @State private var details: AttributedString?
     @State private var error: String?
+    @State private var showStock = false
     @Environment(Shop.self) private var shop
 
     init(product: Product) {
@@ -309,6 +310,7 @@ struct ProductDetailView: View {
         }
         .navigationBarTitleDisplayMode(.inline)
         .task { await load() }
+        .sheet(isPresented: $showStock) { if let product { StockView(product: product) } }
     }
 
     private func load() async {
@@ -365,6 +367,18 @@ struct ProductDetailView: View {
                         .background(Color(.secondarySystemBackground), in: RoundedRectangle(cornerRadius: 12))
                 }
                 AddToCartButton(product: p, quantity: quantity)
+
+                if let sku = p.sku, !sku.isEmpty {
+                    Button { showStock = true } label: {
+                        Label("Ver stock por sucursal", systemImage: "mappin.and.ellipse")
+                            .font(.subheadline.weight(.semibold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                            .background(Color.brand.opacity(0.12), in: Capsule())
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(Color.brand)
+                }
 
                 HStack(spacing: 10) {
                     actionButton(shop.isFavorite(p) ? "Favorito" : "Favoritos",

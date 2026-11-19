@@ -140,10 +140,56 @@ final class HiddenSite: NSObject, WKNavigationDelegate {
         return nil
     }
 
+    /// The checkout's "Sucursal" field: every branch with the store code the stock service uses.
+    func branchCodes() async -> [(code: String, name: String)] {
+        guard await waitForPage() else { return [] }
+        let js = """
+        for (let i = 0; i < 20; i++) {
+          const sel = document.querySelector('[name="billing_sucursal"]');
+          if (sel && sel.options.length > 1) return [...sel.options].filter(o => o.value).map(o => [o.value, o.textContent.trim()]);
+          await new Promise(r => setTimeout(r, 300));
+        }
+        return [];
+        """
+        let raw = await WebBridge.run(js, in: webView) as? [[String]] ?? []
+        return raw.compactMap { $0.count == 2 ? (code: $0[0], name: $0[1]) : nil }
+    }
+
     /// Requests the page's scripts made that returned branch data (for the diagnostics report).
     func capturedRequests() async -> String {
         await WebBridge.run("return (window.__raw ?? []).map(r => r.req + '\\n' + r.body.slice(0, 600)).join('\\n---\\n')",
                             in: webView) as? String ?? ""
+    }
+}
+
+/// Branch data shared by the picker, the stock screen and diagnostics. `host` receives the hidden pages to put
+/// in the view hierarchy while they work (their scripts don't run otherwise).
+@MainActor
+enum BranchDirectory {
+    static func options(refresh: Bool = false, host: ([HiddenSite]) -> Void) async -> [InventoryOption] {
+        if !refresh, case let cached = BranchCache.options, !cached.isEmpty { return cached }
+        let site = HiddenSite(path: "/rastrear-pedido/")   // light page; the popup is on every page
+        host([site])
+        let fresh = await site.inventoryOptions()
+        host([])
+        if fresh.count > 1 { BranchCache.options = fresh }
+        return fresh.count > 1 ? fresh : BranchCache.options.isEmpty ? fresh : BranchCache.options
+    }
+
+    /// The checkout form has the field when the cart has items; the billing-address form has it when logged in.
+    static func codes(host: ([HiddenSite]) -> Void) async -> [(code: String, name: String)] {
+        if case let cached = BranchCache.codes, !cached.isEmpty { return cached }
+        for path in ["/caja/", "/mi-cuenta/edit-address/facturacion/", "/mi-cuenta/edit-address/billing/"] {
+            let site = HiddenSite(path: path)
+            host([site])
+            let found = await site.branchCodes()
+            host([])
+            if !found.isEmpty {
+                BranchCache.codes = found
+                return found
+            }
+        }
+        return []
     }
 }
 
@@ -163,6 +209,7 @@ struct BranchPickerView: View {
     @State private var selectedID: String?
     @State private var saving = false
     @State private var camera: MapCameraPosition = .userLocation(fallback: .automatic)
+    @State private var hosted: [HiddenSite] = []
 
     private var selected: InventoryOption? { options.first { $0.id == selectedID } }
 
@@ -178,7 +225,10 @@ struct BranchPickerView: View {
                 map.frame(height: 320)
                 list
             }
-            .background { if let picker { HiddenWebView(webView: picker.webView).frame(width: 1, height: 1).opacity(0.01) } }
+            .background {
+                if let picker { HiddenWebView(webView: picker.webView).frame(width: 1, height: 1).opacity(0.01) }
+                ForEach(hosted, id: \.self) { HiddenWebView(webView: $0.webView).frame(width: 1, height: 1).opacity(0.01) }
+            }
             .navigationTitle("Elegir sucursal")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { dismiss() } } }
@@ -204,11 +254,8 @@ struct BranchPickerView: View {
             MapCompass()
             MapScaleView()
         }
-        .onChange(of: selectedID) { _, id in
-            if let c = options.first(where: { $0.id == id })?.coordinate {
-                withAnimation { camera = .region(MKCoordinateRegion(center: c, latitudinalMeters: 1500, longitudinalMeters: 1500)) }
-            }
-        }
+        .onChange(of: selectedID) { _, _ in frame() }
+        .onChange(of: location.location) { _, _ in if selectedID == nil { frame() } }
     }
 
     @ViewBuilder
@@ -319,13 +366,28 @@ struct BranchPickerView: View {
     }
 
     private func load() async {
-        // Light page: the popup is on every page, this one has almost no images.
-        let site = picker ?? HiddenSite(path: "/rastrear-pedido/")
-        picker = site
-        options = await site.inventoryOptions()
+        if picker == nil { picker = HiddenSite(path: "/rastrear-pedido/") }   // does the selection when the user confirms
+        // Saved list first (instant); then the site's current one replaces it.
+        options = await BranchDirectory.options { hosted = $0 }
         loading = false
-        withAnimation { camera = .automatic }   // frame the user and every branch
+        if let id = shop.preselectedBranchID, options.contains(where: { $0.id == id }) { selectedID = id }
+        shop.preselectedBranchID = nil
+        frame()
+        let fresh = await BranchDirectory.options(refresh: true) { hosted = $0 }
+        if !fresh.isEmpty { options = fresh }
         await geocodeMissing()
+    }
+
+    /// Selected branch close up; otherwise the user and the 5 nearest branches (not the whole country).
+    private func frame() {
+        if let c = selected?.coordinate {
+            withAnimation { camera = .region(MKCoordinateRegion(center: c, latitudinalMeters: 1500, longitudinalMeters: 1500)) }
+            return
+        }
+        let here = location.location
+        let nearest = here.map { h in options.sorted { ($0.distance(from: h) ?? .infinity) < ($1.distance(from: h) ?? .infinity) } } ?? options
+        let points = nearest.prefix(5).compactMap(\.coordinate) + (here.map { [$0.coordinate] } ?? [])
+        if let region = MKCoordinateRegion.fitting(points) { withAnimation { camera = .region(region) } }
     }
 
     /// The site gives coordinates for its branches; only if one lacks them, ask Apple's geocoder (one at a time).
@@ -340,5 +402,20 @@ struct BranchPickerView: View {
                 options[i].lng = c.longitude
             }
         }
+    }
+}
+
+extension MKCoordinateRegion {
+    /// Smallest region showing every point, with a margin.
+    static func fitting(_ points: [CLLocationCoordinate2D]) -> MKCoordinateRegion? {
+        guard let first = points.first else { return nil }
+        var (minLat, maxLat, minLng, maxLng) = (first.latitude, first.latitude, first.longitude, first.longitude)
+        for p in points {
+            minLat = min(minLat, p.latitude); maxLat = max(maxLat, p.latitude)
+            minLng = min(minLng, p.longitude); maxLng = max(maxLng, p.longitude)
+        }
+        return MKCoordinateRegion(center: CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLng + maxLng) / 2),
+                                  span: MKCoordinateSpan(latitudeDelta: max(0.01, (maxLat - minLat) * 1.4),
+                                                         longitudeDelta: max(0.01, (maxLng - minLng) * 1.4)))
     }
 }

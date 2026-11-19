@@ -19,6 +19,7 @@ El proyecto se genera con [XcodeGen](https://github.com/yonaskolb/XcodeGen). Si 
 | Ordenar (popularidad, últimos, precio), filtro de precio | Menú de filtros: orden, “Solo ofertas” y rango de precio. Scroll infinito |
 | Buscador, escaneo de código de barras, búsqueda por voz | Pestaña **Buscar**: texto, escáner (cámara + linterna + ingreso manual) y voz. El código escaneado se busca como SKU |
 | Ficha: Precio normal / Precio web, % de descuento, SKU, stock, cantidad, descripción, categoría/etiqueta, relacionados | Ficha nativa con galería, compartir, favoritos y comparar |
+| Stock por sucursal (solo lo usaba la caja, para validar) | **Ver stock por sucursal** en cada producto: unidades en cada sucursal, ordenadas por disponibilidad y distancia; tocar una la muestra en el mapa. Usa el servicio de stock del sitio (`api.farmatotal.com.py`) |
 | Mis Favoritos (wishlist) | Favoritos (se guardan en el teléfono) |
 | Comparar productos | Comparador de hasta 4 productos lado a lado |
 | Carrito | **Carrito** nativo. Es el mismo carrito del sitio, porque usa la misma sesión |

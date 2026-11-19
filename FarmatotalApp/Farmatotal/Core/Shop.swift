@@ -26,6 +26,8 @@ final class Shop {
     var toast: String?
     var webPage: WebPage?
     var pickingBranch = false
+    /// Branch (inventory ID) the picker should open with selected, e.g. from a product's stock list.
+    var preselectedBranchID: String?
     var favorites: [Product] = Shop.load("favorites") { didSet { Shop.save(favorites, "favorites") } }
     var compare: [Product] = Shop.load("compare") { didSet { Shop.save(compare, "compare") } }
     var branchName: String? = UserDefaults.standard.string(forKey: "branch") {
@@ -122,6 +124,11 @@ final class Shop {
 
     /// Native map + list (BranchPickerView); it drives the site's own selector so stock and checkout follow it.
     func pickBranch() { pickingBranch = true }
+
+    func showBranchOnMap(_ inventoryID: String) {
+        preselectedBranchID = inventoryID
+        pickingBranch = true
+    }
 
     /// Fallback when the native picker can't read the site's branch list: the site's own popup.
     func pickBranchOnWeb() {
