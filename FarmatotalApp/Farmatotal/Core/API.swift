@@ -9,10 +9,21 @@ struct APIError: LocalizedError {
 @MainActor
 enum API {
     private static var cachedCategories: [Category]?
+    /// Set once /wp-json/ turns out to be hidden on the site; then every call uses ?rest_route= directly.
+    private static var useRestRoute = false
 
     static func send<T: Decodable>(_ path: String, method: String = "GET", json: [String: Any]? = nil,
                                    headers: [String: String] = [:]) async throws -> (T, WebBridge.Response) {
-        let r = try await WebBridge.shared.request(path, method: method, json: json, headers: headers)
+        var r = try await WebBridge.shared.request(useRestRoute ? restRoute(path) ?? path : path,
+                                                   method: method, json: json, headers: headers)
+        // Security plugins often answer /wp-json/* with the theme's 404 page while ?rest_route= still reaches the API.
+        if r.status == 404, !useRestRoute, r.headers["content-type"]?.contains("text/html") == true, let alt = restRoute(path) {
+            let retry = try await WebBridge.shared.request(alt, method: method, json: json, headers: headers)
+            if retry.headers["content-type"]?.contains("json") == true {
+                useRestRoute = true
+                r = retry
+            }
+        }
         guard (200..<300).contains(r.status) else {
             let message = (try? JSONSerialization.jsonObject(with: r.body) as? [String: Any])?["message"] as? String
             throw APIError(message: message?.htmlPlain ?? "Error \(r.status) del servidor" + diagnosis(r), status: r.status)
@@ -28,9 +39,19 @@ enum API {
                      r.headers["server"].map { "server: \($0)" },
                      title.map { "“\($0)”" },
                      // URLComponents keeps the trailing "/" that URL.path drops.
-                     r.redirected ? "→ " + (URLComponents(string: r.url).map { $0.path + ($0.query.map { "?" + $0 } ?? "") } ?? r.url) : nil]
+                     r.redirected ? "→ " + (URLComponents(string: r.url).map { $0.path + ($0.query.map { "?" + $0 } ?? "") } ?? r.url) : nil,
+                     // Which address failed (without the query, to keep it short).
+                     !r.redirected ? URLComponents(string: r.url).map(\.path).flatMap { $0.isEmpty || $0 == "/" ? nil : $0 } : nil]
             .compactMap { $0 }
         return parts.isEmpty ? "" : "\n(" + parts.joined(separator: " · ") + ")"
+    }
+
+    /// "/wp-json/wc/store/v1/cart?x=1" → "/?rest_route=/wc/store/v1/cart&x=1" (same API, entry point that skips /wp-json/ rewrites).
+    nonisolated static func restRoute(_ path: String) -> String? {
+        guard path.hasPrefix("/wp-json/") else { return nil }
+        let rest = path.dropFirst("/wp-json".count)
+        let parts = rest.split(separator: "?", maxSplits: 1)
+        return "/?rest_route=" + parts[0] + (parts.count > 1 ? "&" + parts[1] : "")
     }
 
     static func products(_ query: ProductQuery, page: Int) async throws -> (items: [Product], totalPages: Int) {

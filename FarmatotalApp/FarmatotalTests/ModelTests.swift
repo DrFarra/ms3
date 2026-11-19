@@ -49,6 +49,16 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(API.diagnosis(moved), "\n(→ /inventory/casa-central/?x=1)")
     }
 
+    func testRestRouteFallbackPath() {
+        XCTAssertEqual(API.restRoute("/wp-json/wc/store/v1/products?page=1&per_page=20"),
+                       "/?rest_route=/wc/store/v1/products&page=1&per_page=20")
+        XCTAssertEqual(API.restRoute("/wp-json/wc/store/v1/cart"), "/?rest_route=/wc/store/v1/cart")
+        XCTAssertNil(API.restRoute("/sucursales/"))
+        let failed = WebBridge.Response(status: 404, body: Data(), headers: [:],
+                                        url: "https://www.farmatotal.com.py/wp-json/wc/store/v1/products?page=1")
+        XCTAssertEqual(API.diagnosis(failed), "\n(/wp-json/wc/store/v1/products)")
+    }
+
     func testQueryPath() {
         var q = ProductQuery(search: "ibuprofeno 400", category: 12, onSale: true, sort: .priceAsc, minPrice: 1000)
         XCTAssertEqual(q.path(page: 2),
