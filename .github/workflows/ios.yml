@@ -1,0 +1,34 @@
+name: iOS
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: macos-15
+    defaults:
+      run:
+        working-directory: FarmatotalApp
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Tests
+        run: |
+          xcodebuild test -quiet -project Farmatotal.xcodeproj -scheme Farmatotal \
+            -destination 'platform=iOS Simulator,name=iPhone 16' CODE_SIGNING_ALLOWED=NO
+
+      # Unsigned: install with Sideloadly/AltStore (they sign it with your Apple ID) or sign it with your own certificate.
+      - name: Build IPA
+        run: |
+          xcodebuild build -quiet -project Farmatotal.xcodeproj -scheme Farmatotal -configuration Release \
+            -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY=""
+          mkdir Payload
+          cp -R build/Build/Products/Release-iphoneos/Farmatotal.app Payload/
+          zip -qry Farmatotal.ipa Payload
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: Farmatotal-ipa
+          path: FarmatotalApp/Farmatotal.ipa
