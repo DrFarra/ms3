@@ -25,8 +25,13 @@ struct WebSheet: View {
                     ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { dismiss() } }
                 }
         }
-        // Checkout, login or branch changes all affect the cart: re-read it.
-        .onDisappear { Task { await shop.refreshCart() } }
+        // Checkout, login or branch changes affect the cart and the account: re-read both.
+        .onDisappear {
+            Task {
+                await shop.refreshCart()
+                await shop.refreshAccount()   // the user may have logged in (e.g. Facebook) or edited data here
+            }
+        }
     }
 }
 

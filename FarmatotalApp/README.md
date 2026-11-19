@@ -26,7 +26,7 @@ El proyecto se genera con [XcodeGen](https://github.com/yonaskolb/XcodeGen). Si 
 | Caja: sucursal, CI/RUC, validación de stock por sucursal, pago con Bancard | **Finalizar compra** abre la caja real del sitio dentro de la app, así que el pago y las validaciones son los mismos |
 | Selector “Sucursal más cercana” (`?inventory=…`) | Selector nativo con mapa (tu ubicación, pines de sucursales, distancia). Por debajo hace clic en el selector del propio sitio, así que el stock y la caja quedan igual que en la web |
 | Página de Sucursales con mapa | **Sucursales** nativo: mapa, “más cercana” con GPS, llamar, cómo llegar y email |
-| Mi cuenta (login, pedidos, direcciones), ¿Dónde está mi pedido?, Contacto | Pestaña **Cuenta**. Estas páginas se abren dentro de la app sin el encabezado del sitio |
+| Mi cuenta (login, pedidos, direcciones), ¿Dónde está mi pedido?, Contacto | **Cuenta** nativa: iniciar sesión (con autocompletar contraseñas), Mis pedidos con detalle y estado, Direcciones, cerrar sesión. Se leen de las páginas del sitio en la sesión compartida. Editar datos/direcciones, recuperar contraseña, crear cuenta, ingreso con Facebook, rastreo y contacto usan los formularios del sitio dentro de la app |
 
 ## Cómo funciona
 

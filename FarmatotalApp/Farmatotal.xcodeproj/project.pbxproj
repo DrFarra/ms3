@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		0E0C4916A5E7205F63AE1BED /* Account.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EC50A034DB8590D3D7F8158 /* Account.swift */; };
 		16C9C41C300B5EA34E56A590 /* HomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4E396A51AF72FB61FEB2C3DC /* HomeView.swift */; };
 		1A20C42406811DD6D843182D /* StockView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D0680879C16E62A5FA59EAB /* StockView.swift */; };
 		23B1053D98AA5EED77B55FEC /* BranchesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3D6095D4AB66A233922C46E /* BranchesView.swift */; };
@@ -18,6 +19,7 @@
 		6E85D53396F8B8DBB25A58D8 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E62B260A8E3461E3ACFC01C6 /* SearchView.swift */; };
 		8571C997EAECF20CDA8BD291 /* ProductViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 532736D3B87D1D731AF74D16 /* ProductViews.swift */; };
 		863EB324805E08987FE2FC96 /* Shop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12B8AF20A14C9C06AD52EC0E /* Shop.swift */; };
+		93B854FFFE990D9E43FCBD7C /* MyAccountViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5135BE287109F991DF37266C /* MyAccountViews.swift */; };
 		BBA2A6EA6E44D5CDD426C38C /* FarmatotalApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = C94FDBB32ABAB23EDFB71864 /* FarmatotalApp.swift */; };
 		BF951ACF5AE6721EE1A1E404 /* StockAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6A4595F2B7B66481F1AB6EB5 /* StockAPI.swift */; };
 		C21EFFFA671C6409CBB6B8DE /* WebBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9CA08250F6A8B1CE2798A4FB /* WebBridge.swift */; };
@@ -45,7 +47,9 @@
 		2BDB93F60365D87DED2C5330 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
 		2D0680879C16E62A5FA59EAB /* StockView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockView.swift; sourceTree = "<group>"; };
 		2E4626E88140A33315C8431B /* DiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsView.swift; sourceTree = "<group>"; };
+		3EC50A034DB8590D3D7F8158 /* Account.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Account.swift; sourceTree = "<group>"; };
 		4E396A51AF72FB61FEB2C3DC /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
+		5135BE287109F991DF37266C /* MyAccountViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MyAccountViews.swift; sourceTree = "<group>"; };
 		532736D3B87D1D731AF74D16 /* ProductViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductViews.swift; sourceTree = "<group>"; };
 		6A4595F2B7B66481F1AB6EB5 /* StockAPI.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StockAPI.swift; sourceTree = "<group>"; };
 		7A8C32C65148853A8DE9162E /* FarmatotalTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FarmatotalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -76,6 +80,7 @@
 		80E3C40B06CB07FBD6B7A786 /* Core */ = {
 			isa = PBXGroup;
 			children = (
+				3EC50A034DB8590D3D7F8158 /* Account.swift */,
 				E2DDC83D80CBA2A1634EACF7 /* API.swift */,
 				1F6F7C7E1D8914A03633F283 /* Formatting.swift */,
 				2BDB93F60365D87DED2C5330 /* Models.swift */,
@@ -124,6 +129,7 @@
 				A5976248648C728187BBB0EC /* CartAndAccount.swift */,
 				2E4626E88140A33315C8431B /* DiagnosticsView.swift */,
 				4E396A51AF72FB61FEB2C3DC /* HomeView.swift */,
+				5135BE287109F991DF37266C /* MyAccountViews.swift */,
 				532736D3B87D1D731AF74D16 /* ProductViews.swift */,
 				E62B260A8E3461E3ACFC01C6 /* SearchView.swift */,
 				2D0680879C16E62A5FA59EAB /* StockView.swift */,
@@ -222,6 +228,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				3C9B2E6260839B59A54CD4EA /* API.swift in Sources */,
+				0E0C4916A5E7205F63AE1BED /* Account.swift in Sources */,
 				D20BDA9DACBECA11B61AA0E6 /* BranchPicker.swift in Sources */,
 				23B1053D98AA5EED77B55FEC /* BranchesView.swift in Sources */,
 				660518E3A383D4CF7A6CDBE7 /* CartAndAccount.swift in Sources */,
@@ -230,6 +237,7 @@
 				F6E089867A58439CC6340A3D /* Formatting.swift in Sources */,
 				16C9C41C300B5EA34E56A590 /* HomeView.swift in Sources */,
 				F3167BF49DDB735E4D81DF0C /* Models.swift in Sources */,
+				93B854FFFE990D9E43FCBD7C /* MyAccountViews.swift in Sources */,
 				8571C997EAECF20CDA8BD291 /* ProductViews.swift in Sources */,
 				6E85D53396F8B8DBB25A58D8 /* SearchView.swift in Sources */,
 				863EB324805E08987FE2FC96 /* Shop.swift in Sources */,

@@ -81,12 +81,35 @@ final class Shop {
         }
     }
 
+    // MARK: Account (the site's "Mi cuenta", read in the shared session)
+
+    var account: AccountSummary?
+
+    func refreshAccount() async {
+        if let s = try? await AccountAPI.summary() { account = s }
+    }
+
+    func login(user: String, password: String) async throws {
+        if account == nil || account?.loginNonce.isEmpty == true { await refreshAccount() }
+        account = try await AccountAPI.login(user: user, password: password, using: account ?? AccountSummary())
+        await refreshCart()   // the site merges the guest cart into the account's
+    }
+
+    func logout() async {
+        if let a = account { await AccountAPI.logout(a) }
+        await refreshAccount()
+        await refreshCart()
+        show("Sesión cerrada")
+    }
+
     func resetSession() async {
         await WebBridge.shared.resetSession()
         branchName = nil
         nonce = nil
         cart = nil
+        account = nil
         await refreshCart()
+        await refreshAccount()
         show("Sesión reiniciada")
     }
 

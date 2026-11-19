@@ -132,8 +132,9 @@ struct AccountView: View {
                     Text("El stock y los precios se muestran según la sucursal elegida.")
                 }
 
-                Section("Mi cuenta") {
-                    webRow("Ingresar / Mi cuenta", "person.crop.circle", "/mi-cuenta/")
+                MyAccountSection()
+
+                Section("Mis compras") {
                     NavigationLink(value: Route.favorites) {
                         Label("Mis favoritos", systemImage: "heart").badge(shop.favorites.count)
                     }

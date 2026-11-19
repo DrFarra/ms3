@@ -82,6 +82,28 @@ final class WebBridge: NSObject, WKNavigationDelegate {
         return response
     }
 
+    /// Loads a site page in the shared session (as the browser would; optionally POSTing a form) and runs `extract`,
+    /// a JavaScript function body that gets `doc` (the parsed page) and `status`, returning its result.
+    func scrape(_ path: String, form: [String: String]? = nil, extract: String) async throws -> Any? {
+        try await waitUntilReady()
+        let url = path.hasPrefix("http") ? path : Self.site.absoluteString + path
+        let script = """
+        const r = await fetch(url, form ? { method: 'POST', body: new URLSearchParams(form), credentials: 'include' }
+                                        : { credentials: 'include' });
+        const doc = new DOMParser().parseFromString(await r.text(), 'text/html');
+        const status = r.status;
+        const t = el => (el?.textContent ?? '').replace(/\\s+/g, ' ').trim();
+        const lines = el => {
+          if (!el) return '';
+          el.querySelectorAll('br').forEach(b => b.replaceWith('\\n'));
+          return el.textContent.split('\\n').map(s => s.replace(/\\s+/g, ' ').trim()).filter(Boolean).join('\\n');
+        };
+        \(extract)
+        """
+        let formArg: Any = form ?? NSNull()
+        return try await webView.callAsyncJavaScript(script, arguments: ["url": url, "form": formArg], in: nil, contentWorld: .defaultClient)
+    }
+
     /// Runs JavaScript that must `return` a value (callAsyncJavaScript tolerates undefined, evaluateJavaScript does not).
     static func run(_ script: String, in webView: WKWebView, args: [String: Any] = [:]) async -> Any? {
         try? await webView.callAsyncJavaScript(script, arguments: args, in: nil, contentWorld: .page)

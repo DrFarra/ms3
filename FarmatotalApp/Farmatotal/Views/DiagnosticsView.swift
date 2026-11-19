@@ -111,6 +111,31 @@ struct DiagnosticsView: View {
             add("Carrito", r.headers["nonce"] != nil, "\(c.itemsCount) artículo(s); permiso para modificar: \(r.headers["nonce"] != nil ? "sí" : "NO")")
         } catch { add("Carrito", false, error.localizedDescription) }
 
+        // Account (read-only: only reads the "Mi cuenta" pages)
+        do {
+            let a = try await AccountAPI.summary()
+            add("Mi cuenta", a.loggedIn || !a.loginNonce.isEmpty,
+                a.loggedIn ? "sesión iniciada (\(a.name)); secciones: " + a.links.keys.sorted().joined(separator: ", ")
+                           : "sin sesión; formulario de ingreso " + (a.loginNonce.isEmpty ? "NO encontrado" : "encontrado"))
+            if a.loggedIn, let url = a.links["orders"] {
+                do {
+                    let page = try await AccountAPI.orders(url)
+                    add("Mis pedidos", true, "\(page.rows.count) en la primera página" +
+                        (page.rows.first.map { "; último \($0.id) · \($0.status) · \($0.total)" } ?? ""))
+                    if let o = page.rows.first, !o.url.isEmpty {
+                        let d = try await AccountAPI.order(o.url)
+                        add("Detalle de pedido", !d.items.isEmpty, "\(d.items.count) productos, \(d.totals.count) totales")
+                    }
+                } catch { add("Mis pedidos", false, error.localizedDescription) }
+            }
+            if a.loggedIn, let url = a.links["edit-address"] {
+                do {
+                    let cards = try await AccountAPI.addresses(url)
+                    add("Direcciones", !cards.isEmpty, cards.map(\.title).joined(separator: ", "))
+                } catch { add("Direcciones", false, error.localizedDescription) }
+            }
+        } catch { add("Mi cuenta", false, error.localizedDescription) }
+
         // Branches: store-locator page and the branch popup, run hidden like the real screens do
         let locator = HiddenSite(path: "/sucursales/")
         let popup = HiddenSite(path: "/rastrear-pedido/")
