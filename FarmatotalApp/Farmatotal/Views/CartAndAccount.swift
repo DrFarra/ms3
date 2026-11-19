@@ -115,6 +115,7 @@ private struct CartRow: View {
 
 struct AccountView: View {
     @Environment(Shop.self) private var shop
+    @State private var confirmReset = false
 
     var body: some View {
         NavigationStack {
@@ -151,11 +152,21 @@ struct AccountView: View {
                 }
 
                 Section {
+                    Button("Reiniciar sesión", role: .destructive) { confirmReset = true }
+                } footer: {
+                    Text("Si la app no carga productos, esto borra los datos del sitio guardados en el teléfono (sesión, carrito y sucursal) y vuelve a conectar.")
+                }
+
+                Section {
                     Text("© Defensores S.A. Todos los derechos reservados.")
                         .font(.footnote).foregroundStyle(.secondary)
                 }
             }
             .navigationTitle("Cuenta")
+            .confirmationDialog("¿Reiniciar la sesión? Vas a tener que volver a ingresar y tu carrito se vaciará.",
+                                isPresented: $confirmReset, titleVisibility: .visible) {
+                Button("Reiniciar sesión", role: .destructive) { Task { await shop.resetSession() } }
+            }
             .withRoutes()
         }
     }

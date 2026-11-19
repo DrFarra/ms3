@@ -78,6 +78,15 @@ final class Shop {
         }
     }
 
+    func resetSession() async {
+        await WebBridge.shared.resetSession()
+        branchName = nil
+        nonce = nil
+        cart = nil
+        await refreshCart()
+        show("Sesión reiniciada")
+    }
+
     // MARK: Favorites & compare (kept on the device)
 
     func isFavorite(_ p: Product) -> Bool { favorites.contains { $0.id == p.id } }

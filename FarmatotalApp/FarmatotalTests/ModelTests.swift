@@ -44,6 +44,9 @@ final class ModelTests: XCTestCase {
         let r = WebBridge.Response(status: 403, body: Data(html.utf8), headers: ["server": "cloudflare"])
         XCTAssertEqual(API.diagnosis(r), "\n(server: cloudflare · “Attention Required! | Cloudflare”)")
         XCTAssertEqual(API.diagnosis(WebBridge.Response(status: 403, body: Data(), headers: [:])), "")
+        let moved = WebBridge.Response(status: 404, body: Data(), headers: [:],
+                                       url: "https://www.farmatotal.com.py/inventory/casa-central/?x=1", redirected: true)
+        XCTAssertEqual(API.diagnosis(moved), "\n(→ /inventory/casa-central/?x=1)")
     }
 
     func testQueryPath() {

@@ -14,6 +14,8 @@ final class WebBridge: NSObject, WKNavigationDelegate {
         let status: Int
         let body: Data
         let headers: [String: String]
+        var url = ""
+        var redirected = false
     }
 
     @ObservationIgnored let webView: WKWebView
@@ -36,6 +38,13 @@ final class WebBridge: NSObject, WKNavigationDelegate {
         webView.load(URLRequest(url: url))
     }
 
+    /// Forgets the site's cookies (login, cart, chosen branch, Cloudflare clearance) and starts a fresh session.
+    func resetSession() async {
+        await WKWebsiteDataStore.default().removeData(ofTypes: WKWebsiteDataStore.allWebsiteDataTypes(), modifiedSince: .distantPast)
+        HTTPCookieStorage.shared.removeCookies(since: .distantPast)
+        reload()
+    }
+
     // MARK: Requests
 
     func request(_ path: String, method: String = "GET", json: [String: Any]? = nil,
@@ -51,7 +60,7 @@ final class WebBridge: NSObject, WKNavigationDelegate {
         let script = """
         const r = await fetch(url, { method, headers, body: body ?? undefined, credentials: 'include' });
         const h = {}; r.headers.forEach((v, k) => { h[k] = v; });
-        return { status: r.status, body: await r.text(), headers: h };
+        return { status: r.status, body: await r.text(), headers: h, url: r.url, redirected: r.redirected };
         """
         let raw = try await webView.callAsyncJavaScript(
             script, arguments: ["url": url, "method": method, "headers": sendHeaders, "body": body],
@@ -59,7 +68,9 @@ final class WebBridge: NSObject, WKNavigationDelegate {
         guard let dict = raw as? [String: Any] else { throw APIError(message: "Respuesta inválida del sitio", status: 0) }
         let response = Response(status: (dict["status"] as? NSNumber)?.intValue ?? 0,
                                 body: Data((dict["body"] as? String ?? "").utf8),
-                                headers: dict["headers"] as? [String: String] ?? [:])
+                                headers: dict["headers"] as? [String: String] ?? [:],
+                                url: dict["url"] as? String ?? url,
+                                redirected: (dict["redirected"] as? NSNumber)?.boolValue ?? false)
         let blockedPage = response.headers["cf-mitigated"] != nil || response.headers["content-type"]?.contains("text/html") == true
         if response.status == 403, blockedPage, retryOnChallenge {
             // Cloudflare may challenge only some paths (e.g. /wp-json) and a fetch() can't show its check.
@@ -108,8 +119,8 @@ final class WebBridge: NSObject, WKNavigationDelegate {
     }
 
     private func checkPage() async {
-        let challenged = await Self.run("return document.documentElement.outerHTML.includes('challenge-platform')",
-                                        in: webView) as? Bool ?? false
+        // Only the interstitial defines _cf_chl_opt; normal pages also load a "challenge-platform" script, so don't match on that.
+        let challenged = await Self.run("return typeof window._cf_chl_opt !== 'undefined'", in: webView) as? Bool ?? false
         needsHumanCheck = challenged
         guard !challenged else { return }
         connectionError = nil

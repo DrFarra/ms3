@@ -26,7 +26,9 @@ enum API {
         let title = html.range(of: "(?<=<title>)[^<]*", options: [.regularExpression, .caseInsensitive]).map { String(html[$0]).htmlPlain }
         let parts = [r.headers["cf-mitigated"].map { "cf-mitigated: \($0)" },
                      r.headers["server"].map { "server: \($0)" },
-                     title.map { "“\($0)”" }].compactMap { $0 }
+                     title.map { "“\($0)”" },
+                     r.redirected ? "→ " + (URL(string: r.url).map { $0.path + ($0.query.map { "?" + $0 } ?? "") } ?? r.url) : nil]
+            .compactMap { $0 }
         return parts.isEmpty ? "" : "\n(" + parts.joined(separator: " · ") + ")"
     }
 
