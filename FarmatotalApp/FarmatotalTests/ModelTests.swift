@@ -67,6 +67,9 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(AddressMatch.best("Terminal - Avda. Dr. Fernando De La Mora 2416 Esq. Cedro", in: candidates), 1)
         XCTAssertEqual(AddressMatch.best("Rio Apa - Avda. Cacique Lambare Nº 2654", in: candidates), 0)
         XCTAssertNil(AddressMatch.best("Encarnación Centro", in: candidates))
+        XCTAssertEqual(AddressMatch.streetPart("Avda. Dr. Fernando De La Mora 2416 Esq. Cedro"), "Avda. Dr. Fernando De La Mora 2416")
+        XCTAssertEqual(AddressMatch.streetPart("Avda. República Argentina Nº 2670 c/ Concepción"), "Avda. República Argentina Nº 2670")
+        XCTAssertEqual(AddressMatch.streetPart("Mcal. López 1234"), "Mcal. López 1234")
         XCTAssertEqual("<p>Agregar a favoritos</p>Texto".withoutWishlistNoise, "<p></p>Texto")
     }
 

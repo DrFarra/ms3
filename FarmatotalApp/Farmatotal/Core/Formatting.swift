@@ -48,6 +48,12 @@ enum AddressMatch {
             .filter { $0.count >= 3 && !stopWords.contains($0) })
     }
 
+    /// "Avda. Dr. Fernando De La Mora 2416 Esq. Cedro" → "Avda. Dr. Fernando De La Mora 2416": geocoders handle the street + number, not the corner.
+    static func streetPart(_ address: String) -> String {
+        let cut = address.range(of: #"\s+(esq\.?|esquina|c/|casi|entre)\s"#, options: [.regularExpression, .caseInsensitive])
+        return String(address[..<(cut?.lowerBound ?? address.endIndex)]).trimmingCharacters(in: .whitespaces)
+    }
+
     /// Index of the candidate sharing the most words with `target`; needs at least 2 in common to avoid false matches.
     static func best(_ target: String, in candidates: [String]) -> Int? {
         let t = words(target)

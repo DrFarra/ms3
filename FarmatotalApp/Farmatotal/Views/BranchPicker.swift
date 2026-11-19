@@ -1,6 +1,7 @@
 import SwiftUI
 import MapKit
 import WebKit
+import CoreLocation
 
 /// One branch as offered by the site's own selector (multi-inventory plugin popup).
 struct InventoryOption: Identifiable, Hashable {
@@ -8,9 +9,14 @@ struct InventoryOption: Identifiable, Hashable {
     let name: String
     let address: String
     let siteDistance: String?
-    var branch: Branch?      // store-locator entry with coordinates, matched by address words
+    var lat: Double?
+    var lng: Double?
 
     var shortName: String { name.components(separatedBy: " - ").first ?? name }
+    var coordinate: CLLocationCoordinate2D? { lat.flatMap { la in lng.map { CLLocationCoordinate2D(latitude: la, longitude: $0) } } }
+    func distance(from here: CLLocation) -> CLLocationDistance? {
+        coordinate.map { here.distance(from: CLLocation(latitude: $0.latitude, longitude: $0.longitude)) }
+    }
 }
 
 /// Runs the site's branch popup in a hidden web view: reads its list and clicks the chosen entry,
@@ -40,15 +46,25 @@ final class InventoryPicker: NSObject, WKNavigationDelegate {
 
     func options() async -> [InventoryOption] {
         guard await waitForPage() else { return [] }
+        // The nearest branch is drawn first and the rest a moment later: wait until the count stops changing.
         let js = """
         document.querySelector('.woocommerce-multi-inventory-open-poup')?.click();
-        for (let i = 0; i < 50; i++) {
-          const els = [...document.querySelectorAll('.woocommerce-multi-inventory-popup-locations-location')];
-          if (els.length) return els.map(e => ({ text: e.innerText,
-            distance: e.querySelector('[class*="location-distance"]')?.innerText ?? '' }));
+        const sel = '.woocommerce-multi-inventory-popup-locations-location';
+        let last = -1, stable = 0;
+        for (let i = 0; i < 80 && stable < 5; i++) {
+          const n = document.querySelectorAll(sel).length;
+          stable = (n > 0 && n === last) ? stable + 1 : 0;
+          last = n;
           await new Promise(r => setTimeout(r, 300));
         }
-        return [];
+        return [...document.querySelectorAll(sel)].map(e => {
+          let text = e.innerText;
+          const distance = e.querySelector('[class*="location-distance"]')?.innerText ?? '';
+          e.querySelectorAll('[class*="location-distance"], [class*="location-select"]').forEach(x => { text = text.replace(x.innerText, ''); });
+          const attrs = {};
+          [e, ...e.querySelectorAll('*')].forEach(x => { for (const a of x.attributes) if (a.name.startsWith('data-')) attrs[a.name] = a.value; });
+          return { text, distance, attrs };
+        });
         """
         let raw = await WebBridge.run(js, in: webView) as? [[String: Any]] ?? []
         var seen = Set<String>()
@@ -56,10 +72,18 @@ final class InventoryPicker: NSObject, WKNavigationDelegate {
             let distance = (row["distance"] as? String ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
             let lines = (row["text"] as? String ?? "").components(separatedBy: .newlines)
                 .map { $0.trimmingCharacters(in: .whitespaces) }
-                .filter { !$0.isEmpty && $0 != distance }
+                .filter { !$0.isEmpty && !$0.localizedCaseInsensitiveContains("seleccionar") }
             guard let name = lines.first, seen.insert(name).inserted else { return nil }   // nearest one appears twice
-            return InventoryOption(id: index, name: name, address: lines.dropFirst().joined(separator: " "),
-                                   siteDistance: distance.isEmpty ? nil : distance, branch: nil)
+            // If the plugin exposes coordinates as data-*lat* / data-*lng* attributes, use them directly.
+            let attrs = row["attrs"] as? [String: String] ?? [:]
+            func coord(_ keys: [String]) -> Double? {
+                attrs.first { k, _ in keys.contains { k.lowercased().contains($0) } }.flatMap { Double($0.value) }
+            }
+            let address = lines.count > 1 ? lines.dropFirst().joined(separator: " ")
+                                           : name.components(separatedBy: " - ").dropFirst().joined(separator: " - ")
+            return InventoryOption(id: index, name: name, address: address,
+                                   siteDistance: distance.isEmpty ? nil : distance,
+                                   lat: coord(["lat"]), lng: coord(["lng", "lon"]))
         }
     }
 
@@ -100,13 +124,6 @@ struct BranchPickerView: View {
 
     private var selected: InventoryOption? { options.first { $0.id == selectedID } }
 
-    private var sorted: [InventoryOption] {
-        guard let here = location.location else { return options }   // the site already lists nearest first
-        return options.sorted {
-            ($0.branch?.distance(from: here) ?? .infinity) < ($1.branch?.distance(from: here) ?? .infinity)
-        }
-    }
-
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
@@ -128,8 +145,8 @@ struct BranchPickerView: View {
     private var map: some View {
         Map(position: $camera, selection: $selectedID) {
             UserAnnotation()
-            ForEach(options.filter { $0.branch != nil }) { o in
-                Marker(o.shortName, systemImage: "cross.case.fill", coordinate: o.branch!.coordinate)
+            ForEach(options.filter { $0.coordinate != nil }) { o in
+                Marker(o.shortName, systemImage: "cross.case.fill", coordinate: o.coordinate!)
                     .tint(o.id == selectedID ? Color.red : Color.brand)
                     .tag(o.id)
             }
@@ -140,7 +157,7 @@ struct BranchPickerView: View {
             MapScaleView()
         }
         .onChange(of: selectedID) { _, id in
-            if let c = options.first(where: { $0.id == id })?.branch?.coordinate {
+            if let c = options.first(where: { $0.id == id })?.coordinate {
                 withAnimation { camera = .region(MKCoordinateRegion(center: c, latitudinalMeters: 1500, longitudinalMeters: 1500)) }
             }
         }
@@ -171,7 +188,7 @@ struct BranchPickerView: View {
             }
         } else {
             ScrollViewReader { proxy in
-                List(sorted) { o in
+                List(options) { o in   // the site already lists them nearest first
                     Button { selectedID = o.id } label: { row(o) }
                         .listRowBackground(o.id == selectedID ? Color.brand.opacity(0.15) : nil)
                         .id(o.id)
@@ -206,8 +223,8 @@ struct BranchPickerView: View {
     }
 
     private func distanceText(_ o: InventoryOption) -> String? {
-        if let here = location.location, let b = o.branch {
-            let km = b.distance(from: here) / 1000
+        if let here = location.location, let meters = o.distance(from: here) {
+            let km = meters / 1000
             return km < 1 ? "\(Int(km * 1000)) m" : km.formatted(.number.precision(.fractionLength(1))) + " km"
         }
         return o.siteDistance
@@ -247,14 +264,40 @@ struct BranchPickerView: View {
     }
 
     private func load() async {
-        async let fromSite = picker.options()
-        let branches = (try? await API.branches()) ?? []   // coordinates for the map; the list works without them
-        var list = await fromSite
-        let candidates = branches.map { $0.title + " " + $0.address }
-        for i in list.indices {
-            if let j = AddressMatch.best(list[i].name + " " + list[i].address, in: candidates) { list[i].branch = branches[j] }
-        }
-        options = list
+        options = await picker.options()
         loading = false
+        await locateBranches()
+    }
+
+    /// Fills in coordinates for the map: saved ones first, then the "Sucursales" page, then Apple's geocoder.
+    private func locateBranches() async {
+        var saved = UserDefaults.standard.dictionary(forKey: "branchCoordinates") as? [String: [Double]] ?? [:]
+        func set(_ i: Int, _ c: CLLocationCoordinate2D) {
+            options[i].lat = c.latitude
+            options[i].lng = c.longitude
+            saved[options[i].name] = [c.latitude, c.longitude]
+        }
+        for i in options.indices where options[i].coordinate == nil {
+            if let c = saved[options[i].name], c.count == 2 { options[i].lat = c[0]; options[i].lng = c[1] }
+        }
+        if options.contains(where: { $0.coordinate == nil }), let branches = try? await API.branches() {
+            let candidates = branches.map { $0.title + " " + $0.address }
+            for i in options.indices where options[i].coordinate == nil {
+                if let j = AddressMatch.best(options[i].name + " " + options[i].address, in: candidates) { set(i, branches[j].coordinate) }
+            }
+        }
+        camera = .automatic   // frame the user and every pin found so far
+        // Apple's geocoder is rate-limited: one at a time, nearest first, pins appear as they resolve.
+        let near = location.location.map { CLCircularRegion(center: $0.coordinate, radius: 100_000, identifier: "near") }
+        for i in options.indices where options[i].coordinate == nil {
+            let street = AddressMatch.streetPart(options[i].address.isEmpty ? options[i].name : options[i].address)
+            if let marks = try? await CLGeocoder().geocodeAddressString(street + ", Paraguay", in: near,
+                                                                         preferredLocale: Locale(identifier: "es_PY")),
+               let c = marks.first?.location?.coordinate {
+                set(i, c)
+            }
+        }
+        UserDefaults.standard.set(saved, forKey: "branchCoordinates")
+        if selectedID == nil { withAnimation { camera = .automatic } }
     }
 }
