@@ -27,8 +27,14 @@ jobs:
           xcodebuild test -quiet -project Farmatotal.xcodeproj -scheme Farmatotal \
             -destination "id=$UDID" CODE_SIGNING_ALLOWED=NO
 
+      - name: Crash logs
+        if: failure()
+        run: |
+          for f in $(find ~/Library/Logs/DiagnosticReports -name 'Farmatotal*' 2>/dev/null | head -2); do echo "== $f"; head -c 12000 "$f"; done
+
       # Unsigned: install with Sideloadly/AltStore (they sign it with your Apple ID) or sign it with your own certificate.
       - name: Build IPA
+        if: success() || failure()   # still produce the app when tests fail; the job stays red
         run: |
           xcodebuild build -quiet -project Farmatotal.xcodeproj -scheme Farmatotal -configuration Release \
             -sdk iphoneos -destination 'generic/platform=iOS' -derivedDataPath build \
@@ -38,6 +44,7 @@ jobs:
           zip -qry Farmatotal.ipa Payload
 
       - uses: actions/upload-artifact@v4
+        if: success() || failure()
         with:
           name: Farmatotal-ipa
           path: FarmatotalApp/Farmatotal.ipa
