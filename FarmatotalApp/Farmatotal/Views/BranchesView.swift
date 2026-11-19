@@ -7,6 +7,7 @@ struct BranchesView: View {
     @State private var branches: [Branch] = []
     @State private var error: String?
     @State private var location = LocationProvider()
+    @State private var site: HiddenSite?   // created on load: @State initializers run on every view re-init
 
     private var sorted: [Branch] {
         guard let here = location.location else { return branches }
@@ -48,6 +49,7 @@ struct BranchesView: View {
                 }
             }
         }
+        .background { if let site { HiddenWebView(webView: site.webView).frame(width: 1, height: 1).opacity(0.01) } }
         .navigationTitle("Sucursales")
         .toolbar {
             Button { location.request() } label: { Label("Más cercana", systemImage: "location.fill") }
@@ -60,7 +62,11 @@ struct BranchesView: View {
 
     private func load() async {
         error = nil
-        do { branches = try await API.branches() } catch { self.error = error.localizedDescription }
+        // The store locator only loads its list through its own scripts: run the page hidden and capture it.
+        let page = HiddenSite(path: "/sucursales/")
+        site = page
+        branches = await page.places()
+        if branches.isEmpty { error = "El sitio no devolvió la lista de sucursales." }
     }
 }
 

@@ -19,21 +19,58 @@ struct InventoryOption: Identifiable, Hashable {
     }
 }
 
-/// Runs the site's branch popup in a hidden web view: reads its list and clicks the chosen entry,
-/// so the site stores the branch exactly as if the user had picked it on the web.
+/// A site page running hidden in the app. It lets the site's own scripts do their work: the branch popup
+/// (read its list, click an entry so the site stores the branch) and the store locator (its branch list).
 @MainActor @Observable
-final class InventoryPicker: NSObject, WKNavigationDelegate {
+final class HiddenSite: NSObject, WKNavigationDelegate {
     @ObservationIgnored let webView: WKWebView
     private var pageLoaded = false
 
-    override init() {
+    /// Keeps every JSON response the page's scripts receive that contains a list of places (objects with "lat…"),
+    /// so we get the branch data exactly as the site loads it, without knowing each plugin's request format.
+    private static let captureScript = """
+    (() => {
+      window.__geo = [];
+      const hasLat = o => o && typeof o === 'object' && Object.keys(o).some(k => /^lat/i.test(k));
+      const walk = v => {
+        if (Array.isArray(v)) { if (v.some(hasLat)) window.__geo.push(v.filter(hasLat)); else v.forEach(walk); }
+        else if (v && typeof v === 'object') {
+          const vals = Object.values(v);
+          if (vals.length && vals.every(hasLat)) window.__geo.push(vals); else vals.forEach(walk);
+        }
+      };
+      const keep = t => { try { walk(JSON.parse(t)); } catch (e) {} };
+      const send = XMLHttpRequest.prototype.send;
+      XMLHttpRequest.prototype.send = function (...a) {
+        this.addEventListener('load', () => { try { keep(this.responseText); } catch (e) {} });
+        return send.apply(this, a);
+      };
+      const f = window.fetch;
+      window.fetch = async (...a) => { const r = await f(...a); r.clone().text().then(keep).catch(() => {}); return r; };
+    })();
+    """
+
+    init(path: String) {
         let config = WKWebViewConfiguration()
         config.websiteDataStore = .default()
+        config.userContentController.addUserScript(WKUserScript(source: Self.captureScript, injectionTime: .atDocumentStart,
+                                                                forMainFrameOnly: true))
         webView = WKWebView(frame: CGRect(x: 0, y: 0, width: 390, height: 800), configuration: config)
         super.init()
         webView.navigationDelegate = self
-        // Light page: the popup is on every page, this one has almost no images.
-        webView.load(URLRequest(url: WebBridge.site.appending(path: "rastrear-pedido/")))
+        webView.load(URLRequest(url: URL(string: path, relativeTo: WebBridge.site)!))
+    }
+
+    /// Branches with coordinates that the page's scripts loaded (polls every 250 ms, `attempts` times).
+    func places(attempts: Int = 60) async -> [Branch] {
+        guard await waitForPage() else { return [] }
+        for _ in 0..<attempts {
+            let raw = await WebBridge.run("return window.__geo ?? []", in: webView) as? [[[String: Any]]] ?? []
+            let found = Branch.parse(raw.flatMap { $0 })
+            if !found.isEmpty { return found }
+            try? await Task.sleep(for: .milliseconds(250))
+        }
+        return []
     }
 
     func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) { pageLoaded = false }
@@ -44,7 +81,7 @@ final class InventoryPicker: NSObject, WKNavigationDelegate {
         return pageLoaded
     }
 
-    func options() async -> [InventoryOption] {
+    func inventoryOptions() async -> [InventoryOption] {
         guard await waitForPage() else { return [] }
         // The nearest branch is drawn first and the rest a moment later: wait until the count stops changing.
         let js = """
@@ -105,7 +142,7 @@ final class InventoryPicker: NSObject, WKNavigationDelegate {
     }
 }
 
-private struct HiddenWebView: UIViewRepresentable {
+struct HiddenWebView: UIViewRepresentable {
     let webView: WKWebView
     func makeUIView(context: Context) -> WKWebView { webView }
     func updateUIView(_ uiView: WKWebView, context: Context) {}
@@ -114,7 +151,7 @@ private struct HiddenWebView: UIViewRepresentable {
 struct BranchPickerView: View {
     @Environment(Shop.self) private var shop
     @Environment(\.dismiss) private var dismiss
-    @State private var picker = InventoryPicker()
+    @State private var picker: HiddenSite?   // created in .task: @State initializers run on every view re-init
     @State private var location = LocationProvider()
     @State private var options: [InventoryOption] = []
     @State private var loading = true
@@ -130,7 +167,7 @@ struct BranchPickerView: View {
                 map.frame(height: 320)
                 list
             }
-            .background(HiddenWebView(webView: picker.webView).frame(width: 1, height: 1).opacity(0.01))
+            .background { if let picker { HiddenWebView(webView: picker.webView).frame(width: 1, height: 1).opacity(0.01) } }
             .navigationTitle("Elegir sucursal")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cerrar") { dismiss() } } }
@@ -236,7 +273,7 @@ struct BranchPickerView: View {
             Button {
                 Task {
                     saving = true
-                    if let name = await picker.select(o) {
+                    if let name = await picker?.select(o) {
                         shop.branchName = name
                         shop.show("Sucursal: \(o.shortName)")
                         await shop.refreshCart()
@@ -264,13 +301,16 @@ struct BranchPickerView: View {
     }
 
     private func load() async {
-        options = await picker.options()
+        // Light page: the popup is on every page, this one has almost no images.
+        let site = picker ?? HiddenSite(path: "/rastrear-pedido/")
+        picker = site
+        options = await site.inventoryOptions()
         loading = false
-        await locateBranches()
+        await locateBranches(site)
     }
 
-    /// Fills in coordinates for the map: saved ones first, then the "Sucursales" page, then Apple's geocoder.
-    private func locateBranches() async {
+    /// Fills in coordinates for the map: saved ones, then the popup's own data, then Apple's geocoder.
+    private func locateBranches(_ site: HiddenSite) async {
         var saved = UserDefaults.standard.dictionary(forKey: "branchCoordinates") as? [String: [Double]] ?? [:]
         func set(_ i: Int, _ c: CLLocationCoordinate2D) {
             options[i].lat = c.latitude
@@ -280,7 +320,8 @@ struct BranchPickerView: View {
         for i in options.indices where options[i].coordinate == nil {
             if let c = saved[options[i].name], c.count == 2 { options[i].lat = c[0]; options[i].lng = c[1] }
         }
-        if options.contains(where: { $0.coordinate == nil }), let branches = try? await API.branches() {
+        if options.contains(where: { $0.coordinate == nil }) {
+            let branches = await site.places(attempts: 4)   // the popup is already loaded by now
             let candidates = branches.map { $0.title + " " + $0.address }
             for i in options.indices where options[i].coordinate == nil {
                 if let j = AddressMatch.best(options[i].name + " " + options[i].address, in: candidates) { set(i, branches[j].coordinate) }

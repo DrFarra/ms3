@@ -190,3 +190,49 @@ extension JSONEncoder {
         return e
     }()
 }
+
+extension Branch {
+    /// Builds branches from JSON that the site's own scripts loaded (store locator, branch popup).
+    /// Key names differ per plugin, so fields are found by name pattern.
+    static func parse(_ rows: [[String: Any]]) -> [Branch] {
+        func value(_ d: [String: Any], _ pattern: String) -> String? {
+            for (k, v) in d where k.range(of: pattern, options: [.regularExpression, .caseInsensitive]) != nil {
+                if let s = v as? String, !s.isEmpty { return s.htmlPlain }
+                if let n = v as? NSNumber { return n.stringValue }
+            }
+            return nil
+        }
+        var seen = Set<String>()
+        return rows.compactMap { d in
+            guard let lat = Double(value(d, "^lat(itude)?$") ?? ""), let lng = Double(value(d, "^(lng|lon|long|longitude)$") ?? ""),
+                  lat != 0 || lng != 0,
+                  let title = value(d, "^(title|name|term_name|label|store_name)$"), seen.insert(title).inserted
+            else { return nil }
+            return Branch(id: value(d, "^(id|term_id|store_id)$") ?? title,
+                          title: title,
+                          address: [value(d, "^(street|address)$"), value(d, "^city$")].compactMap { $0 }.joined(separator: ", "),
+                          phone: value(d, "^(phone|tel|telephone)$"),
+                          email: value(d, "^email$"),
+                          hours: formatHours(d["open_hours"] ?? d["hours"]),
+                          lat: lat, lng: lng)
+        }
+        .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+    }
+
+    /// Store-locator hours come as JSON like {"mon":["8:00 AM - 10:00 PM"],"sun":"0"}; "1" = open all day, "0" = closed.
+    static func formatHours(_ raw: Any?) -> String? {
+        guard let s = raw as? String, !s.isEmpty else { return nil }
+        guard let dict = try? JSONSerialization.jsonObject(with: Data(s.utf8)) as? [String: Any] else {
+            return s.htmlPlain.isEmpty ? nil : s.htmlPlain
+        }
+        let days = [("mon", "Lun"), ("tue", "Mar"), ("wed", "Mié"), ("thu", "Jue"), ("fri", "Vie"), ("sat", "Sáb"), ("sun", "Dom")]
+        let lines = days.compactMap { (key: String, label: String) -> String? in
+            switch dict[key] {
+            case let list as [String]: return "\(label): \(list.joined(separator: ", "))"
+            case let v as String: return v == "1" ? "\(label): abierto" : v == "0" ? "\(label): cerrado" : "\(label): \(v)"
+            default: return nil
+            }
+        }
+        return lines.isEmpty ? nil : lines.joined(separator: "\n")
+    }
+}

@@ -73,6 +73,24 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual("<p>Agregar a favoritos</p>Texto".withoutWishlistNoise, "<p></p>Texto")
     }
 
+    func testParsesCapturedBranches() throws {
+        // Shapes like Agile Store Locator's (strings) and a taxonomy-style popup (numbers, other key names).
+        let json = """
+        [{"id":"7","title":"Terminal","street":"Avda. Fernando de la Mora 2416","city":"Asunción","lat":"-25.3001","lng":"-57.6102",
+          "phone":"021 555","open_hours":"{\\"mon\\":[\\"7:00 AM - 10:00 PM\\"],\\"sun\\":\\"0\\"}"},
+         {"term_id":12,"name":"Rio Apa","address":"Avda. Cacique Lambaré 2654","latitude":-25.31,"longitude":-57.63},
+         {"title":"Sin coordenadas","lat":"","lng":""},
+         {"title":"Terminal","lat":"-25.3","lng":"-57.6"}]
+        """
+        let rows = try XCTUnwrap(JSONSerialization.jsonObject(with: Data(json.utf8)) as? [[String: Any]])
+        let b = Branch.parse(rows)
+        XCTAssertEqual(b.map(\.title), ["Rio Apa", "Terminal"])          // invalid + duplicate dropped, sorted
+        XCTAssertEqual(b[0].id, "12")
+        XCTAssertEqual(b[0].lat, -25.31)
+        XCTAssertEqual(b[1].address, "Avda. Fernando de la Mora 2416, Asunción")
+        XCTAssertEqual(b[1].hours, "Lun: 7:00 AM - 10:00 PM\nDom: cerrado")
+    }
+
     func testQueryPath() {
         var q = ProductQuery(search: "ibuprofeno 400", category: 12, onSale: true, sort: .priceAsc, minPrice: 1000)
         XCTAssertEqual(q.path(page: 2),
