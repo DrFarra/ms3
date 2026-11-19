@@ -152,6 +152,7 @@ struct AccountView: View {
                 }
 
                 Section {
+                    NavigationLink { DiagnosticsView() } label: { Label("Diagnóstico", systemImage: "stethoscope") }
                     Button("Reiniciar sesión", role: .destructive) { confirmReset = true }
                 } footer: {
                     Text("Si la app no carga productos, esto borra los datos del sitio guardados en el teléfono (sesión, carrito y sucursal) y vuelve a conectar.")

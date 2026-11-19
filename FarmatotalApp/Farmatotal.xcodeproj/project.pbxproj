@@ -11,6 +11,7 @@
 		23B1053D98AA5EED77B55FEC /* BranchesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D3D6095D4AB66A233922C46E /* BranchesView.swift */; };
 		3C9B2E6260839B59A54CD4EA /* API.swift in Sources */ = {isa = PBXBuildFile; fileRef = E2DDC83D80CBA2A1634EACF7 /* API.swift */; };
 		4A200BD2BD2FA41098D4A971 /* WebSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = E11A59D1B6DE3CABCA78C144 /* WebSheet.swift */; };
+		50F74222DA13224BAAE3EF11 /* DiagnosticsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2E4626E88140A33315C8431B /* DiagnosticsView.swift */; };
 		660518E3A383D4CF7A6CDBE7 /* CartAndAccount.swift in Sources */ = {isa = PBXBuildFile; fileRef = A5976248648C728187BBB0EC /* CartAndAccount.swift */; };
 		68715A9E54EBDAA7EC32D689 /* ModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DD04055499165413F3A11AFB /* ModelTests.swift */; };
 		6E85D53396F8B8DBB25A58D8 /* SearchView.swift in Sources */ = {isa = PBXBuildFile; fileRef = E62B260A8E3461E3ACFC01C6 /* SearchView.swift */; };
@@ -40,6 +41,7 @@
 		1D941D117B9DC6121B2EB4C4 /* BranchPicker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BranchPicker.swift; sourceTree = "<group>"; };
 		1F6F7C7E1D8914A03633F283 /* Formatting.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Formatting.swift; sourceTree = "<group>"; };
 		2BDB93F60365D87DED2C5330 /* Models.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Models.swift; sourceTree = "<group>"; };
+		2E4626E88140A33315C8431B /* DiagnosticsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DiagnosticsView.swift; sourceTree = "<group>"; };
 		4E396A51AF72FB61FEB2C3DC /* HomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HomeView.swift; sourceTree = "<group>"; };
 		532736D3B87D1D731AF74D16 /* ProductViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProductViews.swift; sourceTree = "<group>"; };
 		7A8C32C65148853A8DE9162E /* FarmatotalTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = FarmatotalTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -115,6 +117,7 @@
 				D3D6095D4AB66A233922C46E /* BranchesView.swift */,
 				1D941D117B9DC6121B2EB4C4 /* BranchPicker.swift */,
 				A5976248648C728187BBB0EC /* CartAndAccount.swift */,
+				2E4626E88140A33315C8431B /* DiagnosticsView.swift */,
 				4E396A51AF72FB61FEB2C3DC /* HomeView.swift */,
 				532736D3B87D1D731AF74D16 /* ProductViews.swift */,
 				E62B260A8E3461E3ACFC01C6 /* SearchView.swift */,
@@ -216,6 +219,7 @@
 				D20BDA9DACBECA11B61AA0E6 /* BranchPicker.swift in Sources */,
 				23B1053D98AA5EED77B55FEC /* BranchesView.swift in Sources */,
 				660518E3A383D4CF7A6CDBE7 /* CartAndAccount.swift in Sources */,
+				50F74222DA13224BAAE3EF11 /* DiagnosticsView.swift in Sources */,
 				BBA2A6EA6E44D5CDD426C38C /* FarmatotalApp.swift in Sources */,
 				F6E089867A58439CC6340A3D /* Formatting.swift in Sources */,
 				16C9C41C300B5EA34E56A590 /* HomeView.swift in Sources */,
