@@ -13,7 +13,8 @@ extension LinearGradient {
 @MainActor
 func htmlAttributed(_ html: String) -> AttributedString? {
     let css = "<style>body{font-family:-apple-system;font-size:15px} h1,h2,h3,h4{font-size:17px}</style>"
-    guard let data = (css + html).data(using: .utf8),
+    guard !html.withoutWishlistNoise.htmlPlain.isEmpty,
+          let data = (css + html.withoutWishlistNoise).data(using: .utf8),
           let ns = try? NSMutableAttributedString(
             data: data,
             options: [.documentType: NSAttributedString.DocumentType.html,
@@ -23,6 +24,7 @@ func htmlAttributed(_ html: String) -> AttributedString? {
     // HTML import hardcodes black text; use the dynamic label color so dark mode works.
     ns.addAttribute(.foregroundColor, value: UIColor.label, range: NSRange(location: 0, length: ns.length))
     while ns.string.hasSuffix("\n") { ns.deleteCharacters(in: NSRange(location: ns.length - 1, length: 1)) }
+    while ns.string.hasPrefix("\n") { ns.deleteCharacters(in: NSRange(location: 0, length: 1)) }
     return try? AttributedString(ns, including: \.uiKit)
 }
 

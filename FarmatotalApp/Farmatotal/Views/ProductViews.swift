@@ -161,9 +161,13 @@ struct ProductListView: View {
                 ProgressView().padding(40)
             } else if let error {
                 ErrorView(message: error) { Task { await loadMore() } }
-            } else if products.isEmpty && page > 0 {
+            } else if products.isEmpty && page > 0 && page >= totalPages {
                 ContentUnavailableView("Sin resultados", systemImage: "magnifyingglass",
                                        description: Text("Probá con otra búsqueda o quitá los filtros."))
+            } else if query.minDiscount != nil && page < totalPages {
+                // Discount filtering skips pages without matches, so infinite scroll may need a nudge.
+                Button("Buscar más ofertas") { Task { await loadMore() } }
+                    .buttonStyle(.bordered).padding(30)
             }
         }
         .background(Color(.systemGroupedBackground))
@@ -209,12 +213,19 @@ struct ProductListView: View {
         loading = true
         error = nil
         do {
-            let r = try await API.products(query, page: page + 1)
-            guard gen == generation else { return }   // a newer query replaced this one
-            let known = Set(products.map(\.id))
-            products += r.items.filter { !known.contains($0.id) }
-            page += 1
-            totalPages = r.totalPages
+            var known = Set(products.map(\.id))
+            var fetched = 0
+            // With a device-side filter a page can come back empty: keep reading (up to 8 pages per call).
+            repeat {
+                let r = try await API.products(query, page: page + 1)
+                guard gen == generation else { return }   // a newer query replaced this one
+                let fresh = r.items.filter { !known.contains($0.id) && query.keeps($0) }
+                products += fresh
+                known.formUnion(fresh.map(\.id))
+                fetched += fresh.count
+                page += 1
+                totalPages = r.totalPages
+            } while fetched == 0 && query.minDiscount != nil && page < totalPages && page % 8 != 0
         } catch {
             guard gen == generation else { return }
             self.error = error.localizedDescription
@@ -318,7 +329,7 @@ struct ProductDetailView: View {
             VStack(alignment: .leading, spacing: 16) {
                 TabView {
                     ForEach(p.images.isEmpty ? [WCImage(src: "", thumbnail: nil)] : p.images, id: \.src) { img in
-                        RemoteImage(url: img.src.isEmpty ? nil : img.src)
+                        RemoteImage(url: img.src.isEmpty ? nil : img.src, preview: img.thumbnail)
                     }
                 }
                 .tabViewStyle(.page(indexDisplayMode: p.images.count > 1 ? .always : .never))
@@ -369,7 +380,7 @@ struct ProductDetailView: View {
                 }
                 .font(.subheadline)
 
-                if let short = p.shortDescription?.htmlPlain, !short.isEmpty {
+                if let short = p.shortDescription?.withoutWishlistNoise.htmlPlain, !short.isEmpty {
                     Text(short).font(.callout)
                 }
 
@@ -380,8 +391,12 @@ struct ProductDetailView: View {
                     }
                 }
 
-                let terms = (p.categories ?? []).map { (key: "c\($0.id)", term: $0, isCategory: true) }
-                    + (p.tags ?? []).map { (key: "t\($0.id)", term: $0, isCategory: false) }
+                // The site often files a product twice under same-named categories: show each name once.
+                let terms = ((p.categories ?? []).map { (key: "c\($0.id)", term: $0, isCategory: true) }
+                    + (p.tags ?? []).map { (key: "t\($0.id)", term: $0, isCategory: false) })
+                    .reduce(into: [(key: String, term: Term, isCategory: Bool)]()) { list, t in
+                        if !list.contains(where: { $0.term.title == t.term.title }) { list.append(t) }
+                    }
                 if !terms.isEmpty {
                     ScrollView(.horizontal, showsIndicators: false) {
                         HStack {

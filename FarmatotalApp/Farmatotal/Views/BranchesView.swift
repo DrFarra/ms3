@@ -35,6 +35,10 @@ struct BranchesView: View {
                             }
                             UserAnnotation()
                         }
+                        .mapControls {
+                            MapUserLocationButton()
+                            MapCompass()
+                        }
                         .frame(height: 260)
                         .listRowInsets(EdgeInsets())
                     }
@@ -48,7 +52,10 @@ struct BranchesView: View {
         .toolbar {
             Button { location.request() } label: { Label("Más cercana", systemImage: "location.fill") }
         }
-        .task { if branches.isEmpty { await load() } }
+        .task {
+            location.request()   // blue "you are here" dot and nearest-first order
+            if branches.isEmpty { await load() }
+        }
     }
 
     private func load() async {

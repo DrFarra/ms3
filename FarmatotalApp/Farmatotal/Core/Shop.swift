@@ -25,6 +25,7 @@ final class Shop {
     var cartError: String?
     var toast: String?
     var webPage: WebPage?
+    var pickingBranch = false
     var favorites: [Product] = Shop.load("favorites") { didSet { Shop.save(favorites, "favorites") } }
     var compare: [Product] = Shop.load("compare") { didSet { Shop.save(compare, "compare") } }
     var branchName: String? = UserDefaults.standard.string(forKey: "branch") {
@@ -119,8 +120,11 @@ final class Shop {
         webPage = WebPage(path: path, title: title)
     }
 
-    /// Branch choice uses the site's own selector (multi-inventory plugin), so stock and checkout follow it.
-    func pickBranch() {
+    /// Native map + list (BranchPickerView); it drives the site's own selector so stock and checkout follow it.
+    func pickBranch() { pickingBranch = true }
+
+    /// Fallback when the native picker can't read the site's branch list: the site's own popup.
+    func pickBranchOnWeb() {
         webPage = WebPage(path: "/", title: "Elegir sucursal", hideSiteChrome: false, isBranchPicker: true)
     }
 

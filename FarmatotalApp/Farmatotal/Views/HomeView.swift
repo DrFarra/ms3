@@ -43,6 +43,7 @@ struct HomeView: View {
         .toolbar(.hidden, for: .navigationBar)
         .refreshable { await load() }
         .task { if offers.isEmpty { await load() } }
+        .onChange(of: shop.branchName) { Task { await load() } }   // stock and offers depend on the branch
     }
 
     private var header: some View {
@@ -84,10 +85,10 @@ struct HomeView: View {
             NavigationLink(value: Route.list("Ofertas", ProductQuery(onSale: true))) {
                 banner("¡Super Rombo!", "Descuentos increíbles en toda la farmacia", "tag.fill")
             }
-            Button { shop.open("/catalogo/?descuento=70", title: "Hasta 70% OFF") } label: {
+            NavigationLink(value: Route.list("70% OFF o más", ProductQuery(onSale: true, minDiscount: 70))) {
                 banner("Hasta 70% OFF", "Aprovechá los mejores descuentos", "percent")
             }
-            Button { shop.open("/catalogo/?descuento=50", title: "Hasta 50% OFF") } label: {
+            NavigationLink(value: Route.list("50% OFF o más", ProductQuery(onSale: true, minDiscount: 50))) {
                 banner("Hasta 50% OFF", "Cuidado personal, belleza y más", "sparkles")
             }
         }
@@ -154,8 +155,11 @@ struct HomeView: View {
 }
 
 func topLevel(_ all: [Category]) -> [Category] {
-    all.filter { $0.parent == 0 && $0.count > 0 && !["general", "sin-categorizar", "uncategorized"].contains($0.slug) }
-        .sorted { $0.title.localizedStandardCompare($1.title) == .orderedAscending }
+    let menu = Category.mainMenu
+    let main = all.filter { $0.parent == 0 && menu.contains($0.slug) }
+        .sorted { (menu.firstIndex(of: $0.slug) ?? 0) < (menu.firstIndex(of: $1.slug) ?? 0) }
+    // shortcut: if the site renames its menu slugs, show every top-level category rather than none.
+    return main.isEmpty ? all.filter { $0.parent == 0 && $0.count > 0 } : main
 }
 
 struct CategoriesView: View {

@@ -83,8 +83,17 @@ final class WebBridge: NSObject, WKNavigationDelegate {
     }
 
     /// Runs JavaScript that must `return` a value (callAsyncJavaScript tolerates undefined, evaluateJavaScript does not).
-    static func run(_ script: String, in webView: WKWebView) async -> Any? {
-        try? await webView.callAsyncJavaScript(script, arguments: [:], in: nil, contentWorld: .page)
+    static func run(_ script: String, in webView: WKWebView, args: [String: Any] = [:]) async -> Any? {
+        try? await webView.callAsyncJavaScript(script, arguments: args, in: nil, contentWorld: .page)
+    }
+
+    /// Name of the branch the site has selected (its "Sucursal más cercana: …" header), or nil if none.
+    static func selectedBranch(in webView: WKWebView) async -> String? {
+        let js = "return document.querySelector('.woocommerce-multi-inventory-selected-location')?.innerText ?? ''"
+        let raw = (await run(js, in: webView) as? String ?? "")
+            .replacingOccurrences(of: "Sucursal más cercana:", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return raw.isEmpty || raw.localizedCaseInsensitiveContains("Seleccionar") ? nil : raw
     }
 
     private func waitUntilReady() async throws {
@@ -145,12 +154,15 @@ enum ImageLoader {
     static var userAgent = ""
     private static let cache = NSCache<NSURL, UIImage>()
 
+    static func cached(_ url: URL) -> UIImage? { cache.object(forKey: url as NSURL) }
+
     static func load(_ url: URL) async -> UIImage? {
-        if let cached = cache.object(forKey: url as NSURL) { return cached }
+        if let cached = cached(url) { return cached }
         var request = URLRequest(url: url)
         if !userAgent.isEmpty { request.setValue(userAgent, forHTTPHeaderField: "User-Agent") }
+        // Decode off the main thread so scrolling doesn't stutter on big product photos.
         guard let (data, _) = try? await URLSession.shared.data(for: request),
-              let image = UIImage(data: data) else { return nil }
+              let image = await UIImage(data: data)?.byPreparingForDisplay() else { return nil }
         cache.setObject(image, forKey: url as NSURL)
         return image
     }
@@ -158,6 +170,8 @@ enum ImageLoader {
 
 struct RemoteImage: View {
     let url: String?
+    /// Smaller image (usually already cached from a list) shown while `url` loads.
+    var preview: String? = nil
     @State private var image: UIImage?
     @State private var failed = false
 
@@ -173,8 +187,9 @@ struct RemoteImage: View {
             }
         }
         .task(id: url) {
-            guard let s = url, let u = URL(string: s) else { failed = true; return }
-            image = await ImageLoader.load(u)
+            if image == nil, let p = preview.flatMap(URL.init(string:)) { image = ImageLoader.cached(p) }
+            guard let s = url, let u = URL(string: s) else { failed = image == nil; return }
+            if let full = await ImageLoader.load(u) { image = full }
             failed = image == nil
         }
     }

@@ -23,13 +23,13 @@ El proyecto se genera con [XcodeGen](https://github.com/yonaskolb/XcodeGen). Si 
 | Comparar productos | Comparador de hasta 4 productos lado a lado |
 | Carrito | **Carrito** nativo. Es el mismo carrito del sitio, porque usa la misma sesión |
 | Caja: sucursal, CI/RUC, validación de stock por sucursal, pago con Bancard | **Finalizar compra** abre la caja real del sitio dentro de la app, así que el pago y las validaciones son los mismos |
-| Selector “Sucursal más cercana” (`?inventory=…`) | Botón de sucursal en Inicio y en Cuenta. Usa el selector del propio sitio, así que el stock queda igual que en la web |
+| Selector “Sucursal más cercana” (`?inventory=…`) | Selector nativo con mapa (tu ubicación, pines de sucursales, distancia). Por debajo hace clic en el selector del propio sitio, así que el stock y la caja quedan igual que en la web |
 | Página de Sucursales con mapa | **Sucursales** nativo: mapa, “más cercana” con GPS, llamar, cómo llegar y email |
 | Mi cuenta (login, pedidos, direcciones), ¿Dónde está mi pedido?, Contacto | Pestaña **Cuenta**. Estas páginas se abren dentro de la app sin el encabezado del sitio |
 
 ## Cómo funciona
 
-- **Datos:** se usa la API pública de WooCommerce (Store API, `/wp-json/wc/store/v1`): productos, categorías y carrito.
+- **Datos:** se usa la API pública de WooCommerce (Store API): productos, categorías y carrito. El sitio esconde `/wp-json/` (responde su página 404), así que la app entra por `/?rest_route=/wc/store/v1/…`, que es la misma API (comprobado en un iPhone).
 - **Cloudflare:** el sitio bloquea a los clientes que no son navegadores. Por eso todas las llamadas pasan por un `WKWebView` oculto (`WebBridge.swift`), que tiene las mismas cookies que Safari dentro de la app. Si Cloudflare pide confirmar que sos una persona, la app muestra esa verificación para que el usuario la complete. No se intenta saltarla.
 - Las páginas que se abren dentro de la app (caja, cuenta, sucursal) comparten esa sesión, por lo que el carrito y el login son los mismos.
 
@@ -40,7 +40,6 @@ Cloudflare bloqueó el sitio en vivo desde mi entorno, así que la estructura la
 - ✅ El modelo de datos, el formato de precios en ₲, la decodificación de HTML y las URLs de búsqueda compilan y pasan los tests (`FarmatotalTests`).
 - ✅ Todos los archivos pasan el chequeo de sintaxis de Swift.
 - ❓ **Sin probar:**
-  - que la Store API esté habilitada en el sitio (es estándar en WooCommerce 10.9, la versión que usa el sitio);
   - el endpoint de sucursales (`asl_load_stores` del plugin Agile Store Locator); si falla, la app ofrece “Ver en la web”;
   - el formato de horarios de las sucursales;
   - el selector de sucursal: abre el popup del sitio y detecta el cambio leyendo el texto “Sucursal más cercana”.

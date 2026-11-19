@@ -58,6 +58,11 @@ struct Category: Codable, Hashable, Identifiable {
     let count: Int
 
     var title: String { name.htmlPlain }
+
+    /// The site's own category menu; other top-level categories are active ingredients created by mistake.
+    static let mainMenu = ["medicamentos", "belleza", "higiene-personal", "mamas-y-bebes", "nutricion-y-deporte",
+                           "fragancias", "infantiles", "bazar-y-hogar", "ofertas"]
+
     var symbol: String {
         switch slug {
         case "bazar-y-hogar": "house"
@@ -145,6 +150,10 @@ struct ProductQuery: Hashable {
     var sort: Sort = .standard
     var minPrice: Int?
     var maxPrice: Int?
+    /// Not a Store API filter: applied on the device (like the site's /catalogo/?descuento=N, which shows ≥ N%).
+    var minDiscount: Int?
+
+    func keeps(_ p: Product) -> Bool { minDiscount.map { (p.prices.discountPercent ?? 0) >= $0 } ?? true }
 
     func path(page: Int, perPage: Int = 20) -> String {
         var q = [URLQueryItem(name: "page", value: "\(page)"), URLQueryItem(name: "per_page", value: "\(perPage)")]

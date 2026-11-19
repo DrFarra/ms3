@@ -9,21 +9,11 @@ struct APIError: LocalizedError {
 @MainActor
 enum API {
     private static var cachedCategories: [Category]?
-    /// Set once /wp-json/ turns out to be hidden on the site; then every call uses ?rest_route= directly.
-    private static var useRestRoute = false
 
     static func send<T: Decodable>(_ path: String, method: String = "GET", json: [String: Any]? = nil,
                                    headers: [String: String] = [:]) async throws -> (T, WebBridge.Response) {
-        var r = try await WebBridge.shared.request(useRestRoute ? restRoute(path) ?? path : path,
-                                                   method: method, json: json, headers: headers)
-        // Security plugins often answer /wp-json/* with the theme's 404 page while ?rest_route= still reaches the API.
-        if r.status == 404, !useRestRoute, r.headers["content-type"]?.contains("text/html") == true, let alt = restRoute(path) {
-            let retry = try await WebBridge.shared.request(alt, method: method, json: json, headers: headers)
-            if retry.headers["content-type"]?.contains("json") == true {
-                useRestRoute = true
-                r = retry
-            }
-        }
+        // The site answers /wp-json/* with its theme's 404 page (confirmed on device); ?rest_route= reaches the same API.
+        let r = try await WebBridge.shared.request(restRoute(path) ?? path, method: method, json: json, headers: headers)
         guard (200..<300).contains(r.status) else {
             let message = (try? JSONSerialization.jsonObject(with: r.body) as? [String: Any])?["message"] as? String
             throw APIError(message: message?.htmlPlain ?? "Error \(r.status) del servidor" + diagnosis(r), status: r.status)
@@ -55,7 +45,8 @@ enum API {
     }
 
     static func products(_ query: ProductQuery, page: Int) async throws -> (items: [Product], totalPages: Int) {
-        let (items, r): ([Product], WebBridge.Response) = try await send(query.path(page: page))
+        // Discount filters are applied on the device, so fetch bigger pages to find matches faster.
+        let (items, r): ([Product], WebBridge.Response) = try await send(query.path(page: page, perPage: query.minDiscount == nil ? 20 : 60))
         // A scanned barcode is the SKU on this site; if no exact match, fall back to text search.
         if items.isEmpty, page == 1, let sku = query.sku {
             var q = query

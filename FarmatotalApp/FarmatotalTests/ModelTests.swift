@@ -59,6 +59,17 @@ final class ModelTests: XCTestCase {
         XCTAssertEqual(API.diagnosis(failed), "\n(/wp-json/wc/store/v1/products)")
     }
 
+    func testAddressMatchPairsBranches() {
+        // Popup entry (from the user's screenshot) vs. store-locator entries.
+        let candidates = ["Rio Apa Avda. Cacique Lambare Nº 2654 Esq. Rio Apa, Asunción",
+                          "Terminal Avda. Fernando de la Mora 2416 c/ Cedro, Asunción",
+                          "Casa Central Avda. Defensores del Chaco c/ Cerro Cora"]
+        XCTAssertEqual(AddressMatch.best("Terminal - Avda. Dr. Fernando De La Mora 2416 Esq. Cedro", in: candidates), 1)
+        XCTAssertEqual(AddressMatch.best("Rio Apa - Avda. Cacique Lambare Nº 2654", in: candidates), 0)
+        XCTAssertNil(AddressMatch.best("Encarnación Centro", in: candidates))
+        XCTAssertEqual("<p>Agregar a favoritos</p>Texto".withoutWishlistNoise, "<p></p>Texto")
+    }
+
     func testQueryPath() {
         var q = ProductQuery(search: "ibuprofeno 400", category: 12, onSale: true, sort: .priceAsc, minPrice: 1000)
         XCTAssertEqual(q.path(page: 2),

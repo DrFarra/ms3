@@ -5,6 +5,11 @@ struct FarmatotalApp: App {
     @State private var shop = Shop()
     @State private var bridge = WebBridge.shared
 
+    init() {
+        // Product photos are reused across screens: keep plenty on disk so they appear instantly next time.
+        URLCache.shared = URLCache(memoryCapacity: 64 << 20, diskCapacity: 512 << 20)
+    }
+
     var body: some Scene {
         WindowGroup {
             RootView()
@@ -54,6 +59,7 @@ struct RootView: View {
         }
         .animation(.spring(duration: 0.35), value: shop.toast)
         .sheet(item: $shop.webPage) { WebSheet(page: $0) }
+        .sheet(isPresented: $shop.pickingBranch) { BranchPickerView() }
         .task { await shop.refreshCart() }
     }
 

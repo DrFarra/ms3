@@ -43,7 +43,7 @@ private struct SiteWebView: UIViewRepresentable {
         config.websiteDataStore = .default()
         if page.hideSiteChrome {
             // The app already provides navigation; hide the site's header, footer and side menu.
-            let css = ".site-header,.site-footer,.site-canvas{display:none!important}"
+            let css = ".site-header,.site-footer,.site-canvas,.wcbvs-floating-buttons{display:none!important}"
             let js = "var s=document.createElement('style');s.textContent='\(css)';document.documentElement.appendChild(s);"
             config.userContentController.addUserScript(WKUserScript(source: js, injectionTime: .atDocumentEnd, forMainFrameOnly: true))
         }
@@ -72,7 +72,7 @@ private struct SiteWebView: UIViewRepresentable {
             parent.loading = false
             loads += 1
             Task { @MainActor in
-                let branch = await Self.selectedBranch(in: webView)
+                let branch = await WebBridge.selectedBranch(in: webView)
                 if let branch { parent.onBranch(branch) }
                 guard parent.page.isBranchPicker else { return }
                 if loads == 1 {
@@ -117,15 +117,6 @@ private struct SiteWebView: UIViewRepresentable {
             alert.addAction(UIAlertAction(title: "OK", style: .default) { _ in completionHandler() })
             guard let top = webView.window?.rootViewController?.topMost else { return completionHandler() }
             top.present(alert, animated: true)
-        }
-
-        @MainActor
-        private static func selectedBranch(in webView: WKWebView) async -> String? {
-            let js = "return document.querySelector('.woocommerce-multi-inventory-selected-location')?.innerText ?? ''"
-            let raw = (await WebBridge.run(js, in: webView) as? String ?? "")
-                .replacingOccurrences(of: "Sucursal más cercana:", with: "")
-                .trimmingCharacters(in: .whitespacesAndNewlines)
-            return raw.isEmpty || raw.localizedCaseInsensitiveContains("Seleccionar") ? nil : raw
         }
     }
 }
